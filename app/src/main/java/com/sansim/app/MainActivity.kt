@@ -43,6 +43,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -86,7 +89,7 @@ class SanSimApplication: Application() { override fun onCreate(){ super.onCreate
 data class Country(val flag:String,val name:String,val code:String,val iso:String)
 data class OperatorInfo(val id:Int,val country:String,val countryCode:String,val carrierName:String,val website:String,val logoUrl:String,val esimSupport:Boolean)
 data class PhoneNumberRecord(val id:String=UUID.randomUUID().toString(), val countryCode:String="+86", val countryName:String="中国", val flag:String="🇨🇳", val number:String="", val operator:String="", val expireDate:String=LocalDate.now().plusMonths(1).toString(), val note:String="", val balance:String="", val eid:String="", val smdp:String="", val activationCode:String="", val startDate:String=LocalDate.now().toString(), val createdAt:String=LocalDate.now().toString(), val activatedAt:String="", val longTerm:Boolean=false, val cycleDays:Int=30, val signalStatus:String="在线")
-data class App设置(var dark:Boolean=false,var remind天:Int=7,var trafficUrl:String="https://speed.cloudflare.com/__down?bytes=10485760",var trafficKb:Double=1.0,var tgEnabled:Boolean=false,var botToken:String="",var chatId:String="",var keepCycle:String="月",var backgroundUri:String="",var backgroundAlpha:Float=.72f,var reminderEnabled:Boolean=true,var notificationEnabled:Boolean=true,var remindHour:Int=9,var remindMinute:Int=0,var language:String="简体中文",var emailQuickEnabled:Boolean=true,var smtpEnabled:Boolean=false,var smtpHost:String="",var smtpPort:Int=465,var smtpUser:String="",var smtpPass:String="",var smtpFrom:String="",var smtpTo:String="",var cloudEnabled:Boolean=false,var cloudUrl:String="https://ccs.ziranaa.top:16670",var cloudApiKey:String="",var cloudTelegramEnabled:Boolean=true,var cloudEmailEnabled:Boolean=true,var cloudAutoSync:Boolean=false)
+data class App设置(var dark:Boolean=false,var remind天:Int=7,var trafficUrl:String="https://speed.cloudflare.com/__down?bytes=10485760",var trafficKb:Double=1.0,var tgEnabled:Boolean=false,var botToken:String="",var chatId:String="",var keepCycle:String="月",var backgroundUri:String="",var backgroundAlpha:Float=.72f,var reminderEnabled:Boolean=true,var notificationEnabled:Boolean=true,var remindHour:Int=9,var remindMinute:Int=0,var language:String="简体中文",var emailQuickEnabled:Boolean=true,var smtpEnabled:Boolean=false,var smtpHost:String="",var smtpPort:Int=465,var smtpUser:String="",var smtpPass:String="",var smtpFrom:String="",var smtpTo:String="",var cloudEnabled:Boolean=false,var cloudUrl:String="https://ccs.ziranaa.top:16670",var cloudApiKey:String="",var cloudTelegramEnabled:Boolean=true,var cloudEmailEnabled:Boolean=true,var cloudAutoSync:Boolean=false,var showFlag:Boolean=true)
 
 val LocalAppLanguage = compositionLocalOf { "简体中文" }
 fun tr(lang:String, key:String):String {
@@ -291,6 +294,68 @@ object Countries {
         Country("🇬🇹","危地马拉","+502","GT"),
         Country("🇩🇴","多米尼加","+1","DO"),
         Country("🇯🇲","牙买加","+1","JM"),
+        Country("🇱🇺","卢森堡","+352","LU"),
+        Country("🇲🇹","马耳他","+356","MT"),
+        Country("🇨🇾","塞浦路斯","+357","CY"),
+        Country("🇲🇨","摩纳哥","+377","MC"),
+        Country("🇱🇮","列支敦士登","+423","LI"),
+        Country("🇦🇩","安道尔","+376","AD"),
+        Country("🇸🇲","圣马力诺","+378","SM"),
+        Country("🇽🇰","科索沃","+383","XK"),
+        Country("🇬🇮","直布罗陀","+350","GI"),
+        Country("🇫🇴","法罗群岛","+298","FO"),
+        Country("🇮🇶","伊拉克","+964","IQ"),
+        Country("🇮🇷","伊朗","+98","IR"),
+        Country("🇸🇾","叙利亚","+963","SY"),
+        Country("🇾🇪","也门","+967","YE"),
+        Country("🇵🇸","巴勒斯坦","+970","PS"),
+        Country("🇦🇫","阿富汗","+93","AF"),
+        Country("🇺🇿","乌兹别克斯坦","+998","UZ"),
+        Country("🇰🇬","吉尔吉斯斯坦","+996","KG"),
+        Country("🇹🇯","塔吉克斯坦","+992","TJ"),
+        Country("🇹🇲","土库曼斯坦","+993","TM"),
+        Country("🇲🇳","蒙古","+976","MN"),
+        Country("🇧🇹","不丹","+975","BT"),
+        Country("🇹🇱","东帝汶","+670","TL"),
+        Country("🇵🇬","巴布亚新几内亚","+675","PG"),
+        Country("🇼🇸","萨摩亚","+685","WS"),
+        Country("🇹🇴","汤加","+676","TO"),
+        Country("🇻🇺","瓦努阿图","+678","VU"),
+        Country("🇸🇧","所罗门群岛","+677","SB"),
+        Country("🇳🇨","新喀里多尼亚","+687","NC"),
+        Country("🇵🇫","法属波利尼西亚","+689","PF"),
+        Country("🇬🇺","关岛","+1","GU"),
+        Country("🇬🇭","加纳","+233","GH"),
+        Country("🇨🇮","科特迪瓦","+225","CI"),
+        Country("🇸🇳","塞内加尔","+221","SN"),
+        Country("🇨🇲","喀麦隆","+237","CM"),
+        Country("🇪🇹","埃塞俄比亚","+251","ET"),
+        Country("🇹🇿","坦桑尼亚","+255","TZ"),
+        Country("🇺🇬","乌干达","+256","UG"),
+        Country("🇿🇲","赞比亚","+260","ZM"),
+        Country("🇿🇼","津巴布韦","+263","ZW"),
+        Country("🇦🇴","安哥拉","+244","AO"),
+        Country("🇲🇿","莫桑比克","+258","MZ"),
+        Country("🇲🇺","毛里求斯","+230","MU"),
+        Country("🇲🇬","马达加斯加","+261","MG"),
+        Country("🇷🇪","留尼汪","+262","RE"),
+        Country("🇱🇾","利比亚","+218","LY"),
+        Country("🇸🇩","苏丹","+249","SD"),
+        Country("🇨🇩","刚果(金)","+243","CD"),
+        Country("🇨🇬","刚果(布)","+242","CG"),
+        Country("🇷🇼","卢旺达","+250","RW"),
+        Country("🇧🇼","博茨瓦纳","+267","BW"),
+        Country("🇳🇦","纳米比亚","+264","NA"),
+        Country("🇧🇧","巴巴多斯","+1","BB"),
+        Country("🇹🇹","特立尼达和多巴哥","+1","TT"),
+        Country("🇧🇸","巴哈马","+1","BS"),
+        Country("🇨🇺","古巴","+53","CU"),
+        Country("🇭🇳","洪都拉斯","+504","HN"),
+        Country("🇳🇮","尼加拉瓜","+505","NI"),
+        Country("🇸🇻","萨尔瓦多","+503","SV"),
+        Country("🇧🇿","伯利兹","+501","BZ"),
+        Country("🇬🇾","圭亚那","+592","GY"),
+        Country("🇸🇷","苏里南","+597","SR"),
 
     )
 }
@@ -580,10 +645,10 @@ object OperatorDatabase {
 object DataStore {
     fun load设置(ctx:Context):App设置 {
         val p=ctx.getSharedPreferences(PREF,0); val o=JSONObject(p.getString("settings","{}")!!)
-        return App设置(o.optBoolean("dark"),o.optInt("remind天",7),o.optString("trafficUrl","https://speed.cloudflare.com/__down?bytes=10485760"),o.optDouble("trafficKb",1.0),o.optBoolean("tgEnabled"),o.optString("botToken"),o.optString("chatId"),o.optString("keepCycle","月"),o.optString("backgroundUri",""),o.optDouble("backgroundAlpha",0.72).toFloat(),o.optBoolean("reminderEnabled",true),o.optBoolean("notificationEnabled",true),o.optInt("remindHour",9),o.optInt("remindMinute",0),o.optString("language","简体中文"),o.optBoolean("emailQuickEnabled",true),o.optBoolean("smtpEnabled",false),o.optString("smtpHost",""),o.optInt("smtpPort",465),o.optString("smtpUser",""),o.optString("smtpPass",""),o.optString("smtpFrom",""),o.optString("smtpTo",""),o.optBoolean("cloudEnabled",false),o.optString("cloudUrl","https://ccs.ziranaa.top:16670"),o.optString("cloudApiKey",""),o.optBoolean("cloudTelegramEnabled",true),o.optBoolean("cloudEmailEnabled",true),o.optBoolean("cloudAutoSync",false))
+        return App设置(o.optBoolean("dark"),o.optInt("remind天",7),o.optString("trafficUrl","https://speed.cloudflare.com/__down?bytes=10485760"),o.optDouble("trafficKb",1.0),o.optBoolean("tgEnabled"),o.optString("botToken"),o.optString("chatId"),o.optString("keepCycle","月"),o.optString("backgroundUri",""),o.optDouble("backgroundAlpha",0.72).toFloat(),o.optBoolean("reminderEnabled",true),o.optBoolean("notificationEnabled",true),o.optInt("remindHour",9),o.optInt("remindMinute",0),o.optString("language","简体中文"),o.optBoolean("emailQuickEnabled",true),o.optBoolean("smtpEnabled",false),o.optString("smtpHost",""),o.optInt("smtpPort",465),o.optString("smtpUser",""),o.optString("smtpPass",""),o.optString("smtpFrom",""),o.optString("smtpTo",""),o.optBoolean("cloudEnabled",false),o.optString("cloudUrl","https://ccs.ziranaa.top:16670"),o.optString("cloudApiKey",""),o.optBoolean("cloudTelegramEnabled",true),o.optBoolean("cloudEmailEnabled",true),o.optBoolean("cloudAutoSync",false),o.optBoolean("showFlag",true))
     }
     fun save设置(ctx:Context,s:App设置){
-        val o=JSONObject().put("dark",s.dark).put("remind天",s.remind天).put("trafficUrl",s.trafficUrl).put("trafficKb",s.trafficKb).put("tgEnabled",s.tgEnabled).put("botToken",s.botToken).put("chatId",s.chatId).put("keepCycle",s.keepCycle).put("backgroundUri",s.backgroundUri).put("backgroundAlpha",s.backgroundAlpha.toDouble()).put("reminderEnabled",s.reminderEnabled).put("notificationEnabled",s.notificationEnabled).put("remindHour",s.remindHour).put("remindMinute",s.remindMinute).put("language",s.language).put("emailQuickEnabled",s.emailQuickEnabled).put("smtpEnabled",s.smtpEnabled).put("smtpHost",s.smtpHost).put("smtpPort",s.smtpPort).put("smtpUser",s.smtpUser).put("smtpPass",s.smtpPass).put("smtpFrom",s.smtpFrom).put("smtpTo",s.smtpTo).put("cloudEnabled",s.cloudEnabled).put("cloudUrl",s.cloudUrl).put("cloudApiKey",s.cloudApiKey).put("cloudTelegramEnabled",s.cloudTelegramEnabled).put("cloudEmailEnabled",s.cloudEmailEnabled).put("cloudAutoSync",s.cloudAutoSync)
+        val o=JSONObject().put("dark",s.dark).put("remind天",s.remind天).put("trafficUrl",s.trafficUrl).put("trafficKb",s.trafficKb).put("tgEnabled",s.tgEnabled).put("botToken",s.botToken).put("chatId",s.chatId).put("keepCycle",s.keepCycle).put("backgroundUri",s.backgroundUri).put("backgroundAlpha",s.backgroundAlpha.toDouble()).put("reminderEnabled",s.reminderEnabled).put("notificationEnabled",s.notificationEnabled).put("remindHour",s.remindHour).put("remindMinute",s.remindMinute).put("language",s.language).put("emailQuickEnabled",s.emailQuickEnabled).put("smtpEnabled",s.smtpEnabled).put("smtpHost",s.smtpHost).put("smtpPort",s.smtpPort).put("smtpUser",s.smtpUser).put("smtpPass",s.smtpPass).put("smtpFrom",s.smtpFrom).put("smtpTo",s.smtpTo).put("cloudEnabled",s.cloudEnabled).put("cloudUrl",s.cloudUrl).put("cloudApiKey",s.cloudApiKey).put("cloudTelegramEnabled",s.cloudTelegramEnabled).put("cloudEmailEnabled",s.cloudEmailEnabled).put("cloudAutoSync",s.cloudAutoSync).put("showFlag",s.showFlag)
         ctx.getSharedPreferences(PREF,0).edit().putString("settings",o.toString()).apply(); ReminderScheduler.schedule全部(ctx)
     }
     fun normalizeLongTerm(r:PhoneNumberRecord):PhoneNumberRecord{
@@ -725,17 +790,7 @@ class MainActivity: ComponentActivity(){ private val req=registerForActivityResu
     }
     MaterialTheme(colors){
         CompositionLocalProvider(LocalLayoutDirection provides if(settings.language=="阿拉伯语") LayoutDirection.Rtl else LayoutDirection.Ltr, LocalAppLanguage provides settings.language){
-        AnimatedContent(targetState=edit!=null,transitionSpec={
-            if(targetState){
-                (slideInHorizontally(animationSpec=spring(stiffness=360f,dampingRatio=.86f)){ it } + fadeIn(tween(180)))
-                    .togetherWith(slideOutHorizontally(animationSpec=tween(190)){ -it/5 } + fadeOut(tween(120)))
-                    .using(SizeTransform(clip=false))
-            }else{
-                (slideInHorizontally(animationSpec=spring(stiffness=360f,dampingRatio=.86f)){ -it/5 } + fadeIn(tween(160)))
-                    .togetherWith(slideOutHorizontally(animationSpec=tween(220)){ it } + fadeOut(tween(120)))
-                    .using(SizeTransform(clip=false))
-            }
-        },label="editPageTransition"){ editing ->
+        run{ val editing = edit!=null
             if(editing && edit!=null){
                 Full编辑Screen(init=edit!!, onDismiss={edit=null}, onSave={r->
                     val c=Countries.list.firstOrNull{it.code==r.countryCode && it.name==r.countryName} ?: Countries.list.firstOrNull{it.code==r.countryCode} ?: Countries.list.first()
@@ -755,16 +810,12 @@ class MainActivity: ComponentActivity(){ private val req=registerForActivityResu
                         }
                     }
                     Box(Modifier.weight(1f).fillMaxWidth()){
-                        AnimatedContent(targetState=screen,transitionSpec={
-                            (slideInHorizontally(animationSpec=spring(stiffness=420f)){ it/5 } + fadeIn(tween(180))).togetherWith(slideOutHorizontally(animationSpec=tween(180)){ -it/8 } + fadeOut(tween(120))).using(SizeTransform(clip=false))
-                        },label="screenTransition"){ page ->
-                            when(page){
-                                "home"->Home(ctx,records,settings,search,filter,sortMode,{filter=it},{sortMode=if(sortMode=="到期近") "到期远" else "到期近"},{edit=PhoneNumberRecord()},{edit=it},{r->records=records.filter{it.id!=r.id};DataStore.saveRecords(ctx,records); autoCloudSync(records,settings)},{dial(ctx,it)},{trafficTarget=it},{r,months->val nr=r.copy(expireDate=LocalDate.parse(r.expireDate).plusDays(months.toLong()).toString());records=records.map{if(it.id==r.id)nr else it};DataStore.saveRecords(ctx,records); autoCloudSync(records,settings)})
-                                "keep"->KeepPage(records,{r,m-> val nr=r.copy(expireDate=LocalDate.parse(r.expireDate).plusDays(m.toLong()).toString()); records=records.map{if(it.id==r.id)nr else it}; DataStore.saveRecords(ctx,records); autoCloudSync(records,settings)})
-                                "tools"->ToolsPage(settings,records,{trafficTarget=it},{dial(ctx,it)},{ exportDialog="json" to exportRecordsJson(records,settings) },{ exportDialog="csv" to exportRecordsCsv(records) },{ text-> val imported=parseRecordsAny(text); if(imported.isNotEmpty()){ records=imported; DataStore.saveRecords(ctx,records); autoCloudSync(records,settings); toolMessage=tx("导入完成")+"：${records.size} "+tx("个号码") } else toolMessage=tx("导入失败：未识别 JSON/CSV 数据") })
-                                "settings"->设置Page(ctx,settings,records,{settings=it;DataStore.save设置(ctx,it); autoCloudSync(records,it)})
-                                "countries"->CountryPage()
-                            }
+                        when(screen){
+                            "home"->Home(ctx,records,settings,search,filter,sortMode,{filter=it},{sortMode=if(sortMode=="到期近") "到期远" else "到期近"},{edit=PhoneNumberRecord()},{edit=it},{r->records=records.filter{it.id!=r.id};DataStore.saveRecords(ctx,records); autoCloudSync(records,settings)},{dial(ctx,it)},{trafficTarget=it},{r,months->val nr=r.copy(expireDate=LocalDate.parse(r.expireDate).plusDays(months.toLong()).toString());records=records.map{if(it.id==r.id)nr else it};DataStore.saveRecords(ctx,records); autoCloudSync(records,settings)})
+                            "keep"->KeepPage(records,{r,m-> val nr=r.copy(expireDate=LocalDate.parse(r.expireDate).plusDays(m.toLong()).toString()); records=records.map{if(it.id==r.id)nr else it}; DataStore.saveRecords(ctx,records); autoCloudSync(records,settings)})
+                            "tools"->ToolsPage(settings,records,{trafficTarget=it},{dial(ctx,it)},{ exportDialog="json" to exportRecordsJson(records,settings) },{ exportDialog="csv" to exportRecordsCsv(records) },{ text-> val imported=parseRecordsAny(text); if(imported.isNotEmpty()){ records=imported; DataStore.saveRecords(ctx,records); autoCloudSync(records,settings); toolMessage=tx("导入完成")+"：${records.size} "+tx("个号码") } else toolMessage=tx("导入失败：未识别 JSON/CSV 数据") })
+                            "settings"->设置Page(ctx,settings,records,{settings=it;DataStore.save设置(ctx,it); autoCloudSync(records,it)})
+                            "countries"->CountryPage()
                         }
                     }
                     SimHubBottomNav(screen){ screen=it }
@@ -830,7 +881,7 @@ fun shareExportFile(ctx:Context,fileName:String,mime:String,content:String,title
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Start){
                 IconCircle(if(dark) "☾" else "◐",onToggleDark)
             }
-            TextField(value=search,onValueChange=onSearch,modifier=Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(18.dp)),singleLine=true,
+            TextField(value=search,onValueChange=onSearch,modifier=Modifier.fillMaxWidth().heightIn(min=56.dp).clip(RoundedCornerShape(18.dp)),singleLine=true,
                 placeholder={Text(L("搜索运营商、国家或号码"),fontSize=13.sp,color=Color(0xFF8E8E93),maxLines=1,overflow=TextOverflow.Ellipsis)},leadingIcon={Text("⌕",fontSize=18.sp,color=Color(0xFF8E8E93))},
                 colors=TextFieldDefaults.colors(focusedContainerColor=surface,unfocusedContainerColor=surface,focusedIndicatorColor=Color.Transparent,unfocusedIndicatorColor=Color.Transparent))
         }else{
@@ -859,16 +910,18 @@ fun shareExportFile(ctx:Context,fileName:String,mime:String,content:String,title
 }
 
 
-@Composable fun CompactSimCard(r:PhoneNumberRecord,on编辑:(PhoneNumberRecord)->Unit,onDel:(PhoneNumberRecord)->Unit,onTraffic:(PhoneNumberRecord)->Unit,onKeep:(PhoneNumberRecord,Int)->Unit,days:Long?,remindDays:Int){
+@Composable fun CompactSimCard(r:PhoneNumberRecord,on编辑:(PhoneNumberRecord)->Unit,onDel:(PhoneNumberRecord)->Unit,onTraffic:(PhoneNumberRecord)->Unit,onKeep:(PhoneNumberRecord,Int)->Unit,days:Long?,remindDays:Int,showFlag:Boolean=true){
     val progress=when{days==null->.35f; days<0->.04f; else->(days.coerceIn(0,120).toFloat()/120f).coerceIn(.08f,.98f)}
     var hidden by remember{ mutableStateOf(true) }
     var del by remember{ mutableStateOf(false) }
     var keep by remember{ mutableStateOf(false) }
-    Card(shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(containerColor=Color.White.copy(alpha=.78f)),elevation=CardDefaults.cardElevation(1.dp),modifier=Modifier.fillMaxWidth().height(168.dp).border(.8.dp,Color.White.copy(alpha=.86f),RoundedCornerShape(24.dp))){
+    Card(shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(containerColor=Color.White.copy(alpha=.78f)),elevation=CardDefaults.cardElevation(1.dp),modifier=Modifier.fillMaxWidth().height(150.dp).border(.8.dp,Color.White.copy(alpha=.86f),RoundedCornerShape(22.dp))){
         Box(Modifier.fillMaxSize()){
-            FlagArtPanel(r,Modifier.align(Alignment.CenterEnd).fillMaxHeight().fillMaxWidth(.43f))
-            Box(Modifier.align(Alignment.CenterEnd).fillMaxHeight().fillMaxWidth(.56f).background(Brush.horizontalGradient(listOf(Color.White,Color.White.copy(alpha=.82f),Color.White.copy(alpha=.30f),Color.Transparent))))
-            Column(Modifier.fillMaxSize().padding(start=10.dp,end=10.dp,top=9.dp,bottom=8.dp),verticalArrangement=Arrangement.SpaceBetween){
+            if(showFlag){
+                FlagArtPanel(r,Modifier.align(Alignment.CenterEnd).fillMaxHeight().fillMaxWidth(.43f))
+                Box(Modifier.align(Alignment.CenterEnd).fillMaxHeight().fillMaxWidth(.56f).background(Brush.horizontalGradient(listOf(Color.White,Color.White.copy(alpha=.82f),Color.White.copy(alpha=.30f),Color.Transparent))))
+            }
+            Column(Modifier.fillMaxSize().padding(start=10.dp,end=10.dp,top=7.dp,bottom=6.dp),verticalArrangement=Arrangement.SpaceBetween){
                 Row(verticalAlignment=Alignment.CenterVertically){
                     OperatorLogo44(r.operator.ifBlank{r.countryName}, Countries.list.firstOrNull{it.code==r.countryCode && it.name==r.countryName}?.iso ?: Countries.list.firstOrNull{it.code==r.countryCode}?.iso)
                     Spacer(Modifier.width(8.dp))
@@ -892,11 +945,12 @@ fun shareExportFile(ctx:Context,fileName:String,mime:String,content:String,title
                 }
                 Row(verticalAlignment=Alignment.CenterVertically){Text("EID ${r.eid.ifBlank{fakeEidForCard(r)}}",fontSize=10.sp,color=Color(0xFF6B7280),maxLines=1,overflow=TextOverflow.Ellipsis,modifier=Modifier.weight(1f)); Text(signalIcon(r.signalStatus)+" "+r.signalStatus,fontSize=10.sp,color=Color(0xFF16A34A),maxLines=1)}
                 Box(Modifier.fillMaxWidth(.80f).height(4.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFFE5E7EB))){Box(Modifier.fillMaxWidth(progress).fillMaxHeight().background(Color(0xFF22C55E)))}
-                Row(horizontalArrangement=Arrangement.spacedBy(7.dp)){
-                    MiniAction(L("保号"),Color(0xFF007AFF)){keep=true}
-                    MiniAction(L("刷流量"),Color(0xFF007AFF)){onTraffic(r)}
-                    MiniAction(L("编辑"),Color(0xFF007AFF)){on编辑(r)}
-                    MiniAction(L("删除"),Color(0xFFFF3B30)){del=true}
+                Spacer(Modifier.height(2.dp))
+                Row(horizontalArrangement=Arrangement.spacedBy(18.dp)){
+                    CardIconAction("keep",Color(0xFF34C759)){keep=true}
+                    CardIconAction("traffic",Color(0xFF007AFF)){onTraffic(r)}
+                    CardIconAction("edit",Color(0xFFFF9500)){on编辑(r)}
+                    CardIconAction("delete",Color(0xFFFF3B30)){del=true}
                 }
             }
         }
@@ -909,18 +963,55 @@ fun shareExportFile(ctx:Context,fileName:String,mime:String,content:String,title
     Box(Modifier.widthIn(min=48.dp,max=62.dp).height(28.dp).clip(RoundedCornerShape(16.dp)).background(color.copy(alpha=.10f)).clickable{onClick()},contentAlignment=Alignment.Center){Text(text,fontSize=11.sp,fontWeight=FontWeight.SemiBold,color=color,maxLines=1)}
 }
 
+@Composable fun CardIconAction(type:String,color:Color,onClick:()->Unit){
+    Box(Modifier.width(30.dp).height(40.dp).clip(RoundedCornerShape(13.dp)).background(color.copy(alpha=.14f)).clickable{onClick()},contentAlignment=Alignment.Center){
+        Canvas(Modifier.width(16.dp).height(26.dp)){
+            val w=size.width; val h=size.height; val st=Stroke(width=1.9f)
+            when(type){
+                "keep"->{ // shield / 保号
+                    drawLine(color,Offset(w*.5f,h*.16f),Offset(w*.82f,h*.30f),strokeWidth=1.9f)
+                    drawLine(color,Offset(w*.82f,h*.30f),Offset(w*.82f,h*.54f),strokeWidth=1.9f)
+                    drawLine(color,Offset(w*.82f,h*.54f),Offset(w*.5f,h*.86f),strokeWidth=1.9f)
+                    drawLine(color,Offset(w*.5f,h*.86f),Offset(w*.18f,h*.54f),strokeWidth=1.9f)
+                    drawLine(color,Offset(w*.18f,h*.54f),Offset(w*.18f,h*.30f),strokeWidth=1.9f)
+                    drawLine(color,Offset(w*.18f,h*.30f),Offset(w*.5f,h*.16f),strokeWidth=1.9f)
+                    drawLine(color,Offset(w*.36f,h*.50f),Offset(w*.46f,h*.62f),strokeWidth=1.9f)
+                    drawLine(color,Offset(w*.46f,h*.62f),Offset(w*.66f,h*.38f),strokeWidth=1.9f)
+                }
+                "traffic"->{ // bars / 刷流量
+                    drawLine(color,Offset(w*.24f,h*.80f),Offset(w*.24f,h*.56f),strokeWidth=2.4f)
+                    drawLine(color,Offset(w*.5f,h*.80f),Offset(w*.5f,h*.36f),strokeWidth=2.4f)
+                    drawLine(color,Offset(w*.76f,h*.80f),Offset(w*.76f,h*.18f),strokeWidth=2.4f)
+                }
+                "edit"->{ // pencil / 编辑
+                    drawLine(color,Offset(w*.26f,h*.74f),Offset(w*.70f,h*.30f),strokeWidth=2.0f)
+                    drawLine(color,Offset(w*.70f,h*.30f),Offset(w*.82f,h*.42f),strokeWidth=2.0f)
+                    drawLine(color,Offset(w*.82f,h*.42f),Offset(w*.38f,h*.86f),strokeWidth=2.0f)
+                    drawLine(color,Offset(w*.38f,h*.86f),Offset(w*.20f,h*.86f),strokeWidth=2.0f)
+                    drawLine(color,Offset(w*.20f,h*.86f),Offset(w*.26f,h*.74f),strokeWidth=2.0f)
+                }
+                else->{ // trash / 删除
+                    drawLine(color,Offset(w*.22f,h*.30f),Offset(w*.78f,h*.30f),strokeWidth=2.0f)
+                    drawLine(color,Offset(w*.40f,h*.30f),Offset(w*.42f,h*.18f),strokeWidth=2.0f)
+                    drawLine(color,Offset(w*.42f,h*.18f),Offset(w*.58f,h*.18f),strokeWidth=2.0f)
+                    drawLine(color,Offset(w*.58f,h*.18f),Offset(w*.60f,h*.30f),strokeWidth=2.0f)
+                    drawLine(color,Offset(w*.28f,h*.30f),Offset(w*.32f,h*.84f),strokeWidth=2.0f)
+                    drawLine(color,Offset(w*.32f,h*.84f),Offset(w*.68f,h*.84f),strokeWidth=2.0f)
+                    drawLine(color,Offset(w*.68f,h*.84f),Offset(w*.72f,h*.30f),strokeWidth=2.0f)
+                    drawLine(color,Offset(w*.5f,h*.40f),Offset(w*.5f,h*.74f),strokeWidth=1.6f)
+                }
+            }
+        }
+    }
+}
+
 @Composable fun OperatorLogo44(name:String, iso:String?=null){
-    val ctx = LocalContext.current
-    val info=OperatorDatabase.find(name, iso)
+    val info=remember(name, iso){ OperatorDatabase.find(name, iso) }
     val display=info?.carrierName ?: name
-    val localLogo = OperatorLogoAssets.assetFor(display, iso).ifBlank { OperatorLogoAssets.assetFor(name, iso) }
+    val localLogo = remember(display, name, iso){ OperatorLogoAssets.assetFor(display, iso).ifBlank { OperatorLogoAssets.assetFor(name, iso) } }
     val onlineLogo = if(localLogo.isBlank()) (info?.logoUrl ?: "") else ""
     val assetPath = localLogo.removePrefix("file:///android_asset/")
-    val assetBitmap = remember(assetPath){
-        if(assetPath.isBlank()) null else runCatching{
-            ctx.assets.open(assetPath).use { BitmapFactory.decodeStream(it)?.asImageBitmap() }
-        }.getOrNull()
-    }
+    val assetBitmap = rememberAssetBitmap(assetPath)
     val op=display.uppercase()
     val label=when{
         "移动" in display || "CHINA MOBILE" in op -> "CM"
@@ -1009,21 +1100,61 @@ fun countryTheme(code:String,name:String):List<Color>{
 }
 
 @Composable fun FlagArtPanel(r:PhoneNumberRecord,m:Modifier){
+    val ctx = LocalContext.current
     val colors=countryTheme(r.countryCode,r.countryName)
-    Box(m.background(Brush.linearGradient(colors)),contentAlignment=Alignment.Center){
-        when{
-            r.countryCode=="+86" || r.countryName.contains("中国") -> Box(Modifier.fillMaxSize()){
-                Text("★",fontSize=46.sp,color=Color(0xFFFFD21F).copy(alpha=.92f),modifier=Modifier.align(Alignment.TopStart).padding(start=20.dp,top=16.dp).graphicsLayer(rotationZ=-8f))
-                Text("★",fontSize=15.sp,color=Color(0xFFFFD21F).copy(alpha=.88f),modifier=Modifier.align(Alignment.TopStart).padding(start=70.dp,top=13.dp).graphicsLayer(rotationZ=18f))
-                Text("★",fontSize=15.sp,color=Color(0xFFFFD21F).copy(alpha=.88f),modifier=Modifier.align(Alignment.TopStart).padding(start=84.dp,top=31.dp).graphicsLayer(rotationZ=36f))
-                Text("★",fontSize=15.sp,color=Color(0xFFFFD21F).copy(alpha=.88f),modifier=Modifier.align(Alignment.TopStart).padding(start=83.dp,top=53.dp).graphicsLayer(rotationZ=10f))
-                Text("★",fontSize=15.sp,color=Color(0xFFFFD21F).copy(alpha=.88f),modifier=Modifier.align(Alignment.TopStart).padding(start=68.dp,top=70.dp).graphicsLayer(rotationZ=-18f))
-            }
-            else -> Text(r.flag,fontSize=68.sp,color=Color.White.copy(alpha=.82f),modifier=Modifier.graphicsLayer(scaleX=1.08f,scaleY=1.08f))
+    val iso = Countries.list.firstOrNull{it.code==r.countryCode && it.name==r.countryName}?.iso
+        ?: Countries.list.firstOrNull{it.code==r.countryCode}?.iso
+        ?: when{
+            r.countryName.contains("中国") -> "CN"
+            r.countryName.contains("香港") -> "HK"
+            r.countryName.contains("澳门") -> "MO"
+            else -> ""
         }
-        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color.White.copy(alpha=.12f),Color.Transparent,Color.Black.copy(alpha=.18f)))))
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.White.copy(alpha=.10f),Color.Transparent,Color.Black.copy(alpha=.10f)))))
+    val assetPath = if(iso.isBlank()) "" else "flag_backgrounds/${iso.lowercase()}.png"
+    val flagBitmap = rememberAssetBitmap(assetPath)
+    Box(m.background(Brush.linearGradient(colors)),contentAlignment=Alignment.Center){
+        if(flagBitmap != null){
+            Image(bitmap=flagBitmap,contentDescription=r.countryName,contentScale=ContentScale.FillBounds,modifier=Modifier.fillMaxSize().graphicsLayer(alpha=.96f))
+            Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color.White.copy(alpha=.16f),Color.Transparent,Color.Black.copy(alpha=.20f)))))
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.White.copy(alpha=.10f),Color.Transparent,Color.Black.copy(alpha=.10f)))))
+        }else{
+            when{
+                r.countryCode=="+86" || r.countryName.contains("中国") -> Box(Modifier.fillMaxSize()){
+                    Text("★",fontSize=46.sp,color=Color(0xFFFFD21F).copy(alpha=.92f),modifier=Modifier.align(Alignment.TopStart).padding(start=20.dp,top=16.dp).graphicsLayer(rotationZ=-8f))
+                    Text("★",fontSize=15.sp,color=Color(0xFFFFD21F).copy(alpha=.88f),modifier=Modifier.align(Alignment.TopStart).padding(start=70.dp,top=13.dp).graphicsLayer(rotationZ=18f))
+                    Text("★",fontSize=15.sp,color=Color(0xFFFFD21F).copy(alpha=.88f),modifier=Modifier.align(Alignment.TopStart).padding(start=84.dp,top=31.dp).graphicsLayer(rotationZ=36f))
+                    Text("★",fontSize=15.sp,color=Color(0xFFFFD21F).copy(alpha=.88f),modifier=Modifier.align(Alignment.TopStart).padding(start=83.dp,top=53.dp).graphicsLayer(rotationZ=10f))
+                    Text("★",fontSize=15.sp,color=Color(0xFFFFD21F).copy(alpha=.88f),modifier=Modifier.align(Alignment.TopStart).padding(start=68.dp,top=70.dp).graphicsLayer(rotationZ=-18f))
+                }
+                else -> Text(r.flag,fontSize=68.sp,color=Color.White.copy(alpha=.82f),modifier=Modifier.graphicsLayer(scaleX=1.08f,scaleY=1.08f))
+            }
+            Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color.White.copy(alpha=.12f),Color.Transparent,Color.Black.copy(alpha=.18f)))))
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.White.copy(alpha=.10f),Color.Transparent,Color.Black.copy(alpha=.10f)))))
+        }
     }
+}
+
+object AssetBitmapCache {
+    private val cache = java.util.concurrent.ConcurrentHashMap<String, ImageBitmap>()
+    fun cached(path:String): ImageBitmap? = cache[path]
+    fun decode(ctx:Context, path:String): ImageBitmap? {
+        if(path.isBlank()) return null
+        cache[path]?.let { return it }
+        val bmp = runCatching { ctx.assets.open(path).use { BitmapFactory.decodeStream(it)?.asImageBitmap() } }.getOrNull()
+        if(bmp != null) cache[path] = bmp
+        return bmp
+    }
+}
+
+@Composable
+fun rememberAssetBitmap(path:String): ImageBitmap? {
+    val ctx = LocalContext.current
+    // 命中缓存直接同步返回，避免闪烁；未命中则后台线程解码，主线程不阻塞
+    return produceState<ImageBitmap?>(initialValue = AssetBitmapCache.cached(path), key1 = path) {
+        if(path.isBlank()) { value = null; return@produceState }
+        AssetBitmapCache.cached(path)?.let { value = it; return@produceState }
+        value = withContext(Dispatchers.IO) { AssetBitmapCache.decode(ctx, path) }
+    }.value
 }
 
 fun parseLpa(text:String):Pair<String,String>{
@@ -1053,7 +1184,7 @@ fun signalIcon(s:String)=when{ s.contains("离线")||s.contains("无") -> "○";
         Row(Modifier.fillMaxWidth().height(70.dp).padding(horizontal=20.dp),horizontalArrangement=Arrangement.SpaceAround,verticalAlignment=Alignment.CenterVertically){
             listOf("home" to L("号码"),"tools" to L("工具"),"settings" to L("设置")).forEach{ item->
                 val sel=screen==item.first
-                val scale by animateFloatAsState(targetValue=if(sel)1.06f else 1f,animationSpec=tween(180),label="navScale")
+                val scale by animateFloatAsState(targetValue=if(sel)1.02f else 1f,animationSpec=tween(120),label="navScale")
                 val tint=if(sel) Color(0xFF007AFF) else Color(0xFF8E8E93)
                 Column(horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(3.dp),modifier=Modifier.clip(RoundedCornerShape(16.dp)).background(if(sel)Color(0xFF007AFF).copy(alpha=.08f) else Color.Transparent).clickable{on(item.first)}.padding(horizontal=18.dp,vertical=7.dp).graphicsLayer(scaleX=scale,scaleY=scale)){
                     BottomLineIcon(item.first,tint)
@@ -1255,11 +1386,11 @@ object OperatorLogoAssets {
     val shown=if(sortMode=="到期远") filtered.sortedByDescending{ daysOf(it) ?: Long.MIN_VALUE } else filtered.sortedBy{ daysOf(it) ?: Long.MAX_VALUE }
     Box(Modifier.fillMaxSize()){
         AppBackground(settings)
-        LazyColumn(Modifier.fillMaxSize().padding(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+        LazyColumn(Modifier.fillMaxSize().padding(horizontal=22.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
             item{ FilterToolRow(filter,sortMode,on筛选,on排序) }
             item{ Row(Modifier.fillMaxWidth().padding(horizontal=2.dp,vertical=2.dp),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){ Text(if(sortMode=="到期远") L("到期时间（远到近）") else L("到期时间（近到远）"),fontSize=14.sp,fontWeight=FontWeight.SemiBold,color=Color(0xFF374151)); Text("${shown.size} ${if(LocalAppLanguage.current=="English") "cards" else if(LocalAppLanguage.current=="日本語") "枚" else if(LocalAppLanguage.current=="阿拉伯语") "بطاقات" else "张卡片"}",fontSize=13.sp,color=Color(0xFF6B7280)) } }
             if(shown.isEmpty()) item{ Box(Modifier.fillMaxWidth().height(260.dp),contentAlignment=Alignment.Center){ Column(horizontalAlignment=Alignment.CenterHorizontally){Text(L("暂无号码"),fontSize=18.sp,fontWeight=FontWeight.SemiBold);Text(L("点击右下角添加号码"),fontSize=13.sp,color=Color(0xFF8E8E93))} } }
-            else items(shown){ r-> CompactSimCard(r,on编辑,onDel,onTraffic,onKeep,daysOf(r),settings.remind天) }
+            else items(shown,key={it.id}){ r-> CompactSimCard(r,on编辑,onDel,onTraffic,onKeep,daysOf(r),settings.remind天,settings.showFlag) }
             item{ Spacer(Modifier.height(90.dp)) }
         }
         Box(Modifier.align(Alignment.BottomEnd).padding(end=20.dp,bottom=86.dp).size(56.dp)){
@@ -1417,11 +1548,11 @@ object OperatorLogoAssets {
         LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp,vertical=16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
             item{
                 IOSSection(L("常用工具")){
-                    ToolRow("📶",L("刷流量"),L("选择一个号码执行真实下载流量测试")){ pickTraffic=true }
-                    ToolRow("☎️",L("拨号测试"),L("选择号码并打开系统拨号器")){ pickDial=true }
-                    ToolRow("📤",L("导出 JSON"),L("生成完整 JSON 备份文本")){ onExportJson() }
-                    ToolRow("📄",L("导出 CSV"),L("生成 CSV 表格文本")){ onExportCsv() }
-                    ToolRow("📥",L("导入数据"),L("粘贴 JSON 或 CSV 恢复号码列表")){ importDlg=true }
+                    ToolRow("traffic",L("刷流量"),L("选择一个号码执行真实下载流量测试")){ pickTraffic=true }
+                    ToolRow("dial",L("拨号测试"),L("选择号码并打开系统拨号器")){ pickDial=true }
+                    ToolRow("export_json",L("导出 JSON"),L("生成完整 JSON 备份文本")){ onExportJson() }
+                    ToolRow("export_csv",L("导出 CSV"),L("生成 CSV 表格文本")){ onExportCsv() }
+                    ToolRow("import",L("导入数据"),L("粘贴 JSON 或 CSV 恢复号码列表")){ importDlg=true }
                 }
             }
         }
@@ -1431,12 +1562,51 @@ object OperatorLogoAssets {
     if(importDlg) IOSImportDialog(importText,{importText=it},{importDlg=false},{onImportText(importText);importDlg=false})
 }
 
-@Composable fun ToolRow(icon:String,title:String,sub:String,onClick:()->Unit){
+@Composable fun ToolRow(iconType:String,title:String,sub:String,onClick:()->Unit){
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable{onClick()}.padding(horizontal=6.dp,vertical=4.dp),verticalAlignment=Alignment.CenterVertically){
-        Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFF2F6FF)),contentAlignment=Alignment.Center){Text(icon,fontSize=21.sp)}
+        Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFF2F6FF)),contentAlignment=Alignment.Center){ ToolLineIcon(iconType,Color(0xFF007AFF)) }
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)){Text(title,fontSize=16.sp,fontWeight=FontWeight.SemiBold,color=Color(0xFF111827));Text(sub,fontSize=12.sp,color=Color(0xFF8A94A6),maxLines=1,overflow=TextOverflow.Ellipsis)}
         Text("›",fontSize=24.sp,color=Color(0xFFC7C7CC))
+    }
+}
+
+@Composable fun ToolLineIcon(type:String,color:Color){
+    Canvas(Modifier.size(22.dp)){
+        val w=size.width; val h=size.height
+        val stroke=Stroke(width=2.1f)
+        when(type){
+            "traffic"->{
+                drawRoundRect(color,topLeft=Offset(w*.18f,h*.22f),size=Size(w*.64f,h*.56f),cornerRadius=androidx.compose.ui.geometry.CornerRadius(w*.08f,w*.08f),style=stroke)
+                drawLine(color,Offset(w*.30f,h*.62f),Offset(w*.30f,h*.44f),strokeWidth=2.1f)
+                drawLine(color,Offset(w*.50f,h*.62f),Offset(w*.50f,h*.34f),strokeWidth=2.1f)
+                drawLine(color,Offset(w*.70f,h*.62f),Offset(w*.70f,h*.50f),strokeWidth=2.1f)
+            }
+            "dial"->{
+                drawLine(color,Offset(w*.34f,h*.26f),Offset(w*.66f,h*.26f),strokeWidth=2.1f)
+                drawArc(color,180f,180f,false,topLeft=Offset(w*.20f,h*.18f),size=Size(w*.60f,h*.42f),style=stroke)
+                drawLine(color,Offset(w*.28f,h*.66f),Offset(w*.40f,h*.54f),strokeWidth=2.1f)
+                drawLine(color,Offset(w*.72f,h*.66f),Offset(w*.60f,h*.54f),strokeWidth=2.1f)
+            }
+            "export_json"->{
+                drawRoundRect(color,topLeft=Offset(w*.24f,h*.18f),size=Size(w*.52f,h*.60f),cornerRadius=androidx.compose.ui.geometry.CornerRadius(w*.07f,w*.07f),style=stroke)
+                drawLine(color,Offset(w*.50f,h*.28f),Offset(w*.50f,h*.58f),strokeWidth=2.1f)
+                drawLine(color,Offset(w*.40f,h*.48f),Offset(w*.50f,h*.58f),strokeWidth=2.1f)
+                drawLine(color,Offset(w*.60f,h*.48f),Offset(w*.50f,h*.58f),strokeWidth=2.1f)
+            }
+            "export_csv"->{
+                drawRoundRect(color,topLeft=Offset(w*.24f,h*.18f),size=Size(w*.52f,h*.60f),cornerRadius=androidx.compose.ui.geometry.CornerRadius(w*.07f,w*.07f),style=stroke)
+                drawLine(color,Offset(w*.34f,h*.34f),Offset(w*.66f,h*.34f),strokeWidth=2.0f)
+                drawLine(color,Offset(w*.34f,h*.46f),Offset(w*.66f,h*.46f),strokeWidth=2.0f)
+                drawLine(color,Offset(w*.34f,h*.58f),Offset(w*.58f,h*.58f),strokeWidth=2.0f)
+            }
+            else->{
+                drawRoundRect(color,topLeft=Offset(w*.24f,h*.18f),size=Size(w*.52f,h*.60f),cornerRadius=androidx.compose.ui.geometry.CornerRadius(w*.07f,w*.07f),style=stroke)
+                drawLine(color,Offset(w*.50f,h*.58f),Offset(w*.50f,h*.28f),strokeWidth=2.1f)
+                drawLine(color,Offset(w*.40f,h*.38f),Offset(w*.50f,h*.28f),strokeWidth=2.1f)
+                drawLine(color,Offset(w*.60f,h*.38f),Offset(w*.50f,h*.28f),strokeWidth=2.1f)
+            }
+        }
     }
 }
 
@@ -1558,17 +1728,17 @@ fun fakeEidForCard(r:PhoneNumberRecord):String{ val seed=(r.id+r.number).hashCod
             }
             LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
                 item{
-                    IOSSection(L("运营商与国家")){
+                    SettingsSection(L("运营商与国家")){
                         IOSValueRow(L("国家/地区"),"${r.flag} ${r.countryName} ${r.countryCode}"){ countryDlg=true }
                         IOSDividerLine()
                         IOSField(L("运营商名称"),r.operator,{r=r.copy(operator=it)},L("如 AIS / Vodafone / 中国移动"))
-                        val currentIso = Countries.list.firstOrNull{it.code==r.countryCode && it.name==r.countryName}?.iso ?: Countries.list.firstOrNull{it.code==r.countryCode}?.iso ?: r.countryName
-                        val detectedOperator = guessOperator(r.number,currentIso)
+                        val currentIso = remember(r.countryCode, r.countryName){ Countries.list.firstOrNull{it.code==r.countryCode && it.name==r.countryName}?.iso ?: Countries.list.firstOrNull{it.code==r.countryCode}?.iso ?: r.countryName }
+                        val detectedOperator = remember(r.number, currentIso){ guessOperator(r.number,currentIso) }
                         val selectedOperator = r.operator.ifBlank { detectedOperator }
                         Text(L("留空时会按号码和国家自动识别。"),fontSize=11.sp,color=Color(0xFF8A94A6))
                         Text(L("当前识别")+"：${detectedOperator}",fontSize=11.sp,color=Color(0xFF8A94A6))
                         Text(L("当前选择")+"：${selectedOperator}",fontSize=11.sp,color=Color(0xFF007AFF),fontWeight=FontWeight.SemiBold)
-                        val suggestions = OperatorDatabase.byCountry(currentIso).take(8)
+                        val suggestions = remember(currentIso){ OperatorDatabase.byCountry(currentIso).take(8) }
                         if(suggestions.isNotEmpty()){
                             Text(L("推荐运营商"),fontSize=13.sp,fontWeight=FontWeight.SemiBold,color=Color(0xFF6B7280),modifier=Modifier.padding(top=6.dp))
                             FlowRow(horizontalArrangement=Arrangement.spacedBy(10.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
@@ -1581,7 +1751,7 @@ fun fakeEidForCard(r:PhoneNumberRecord):String{ val seed=(r.id+r.number).hashCod
                     }
                 }
                 item{
-                    IOSSection(L("号码与套餐")){
+                    SettingsSection(L("号码与套餐")){
                         IOSField(L("手机号码"),r.number,{r=r.copy(number=it.filter{c->c.isDigit()})},L("输入手机号码"))
                         IOSDividerLine()
                         IOSField(L("套餐余额"),r.balance,{r=r.copy(balance=it)},L("如 1 RMB / 4.50 USD / 2GB"))
@@ -1592,7 +1762,7 @@ fun fakeEidForCard(r:PhoneNumberRecord):String{ val seed=(r.id+r.number).hashCod
                     }
                 }
                 item{
-                    IOSSection(L("日期与周期")){
+                    SettingsSection(L("日期与周期")){
                         Text(L("开始日期"),fontSize=12.sp,color=Color(0xFF8A94A6)); DateOnlyEditor(r.startDate){r=r.copy(startDate=it)}
                         IOSDividerLine()
                         Text(L("到期日期"),fontSize=12.sp,color=Color(0xFF8A94A6)); DateOnlyEditor(r.expireDate){r=r.copy(expireDate=it)}
@@ -1605,7 +1775,7 @@ fun fakeEidForCard(r:PhoneNumberRecord):String{ val seed=(r.id+r.number).hashCod
                     }
                 }
                 item{
-                    IOSSection(L("eSIM 激活信息")){
+                    SettingsSection(L("eSIM 激活信息")){
                         IOSField(L("编辑 EID"),r.eid,{r=r.copy(eid=it)},L("输入 EID"))
                         IOSDividerLine()
                         IOSField("SM-DP+",r.smdp,{r=r.copy(smdp=it)},L("服务器地址"))
@@ -1623,7 +1793,7 @@ fun fakeEidForCard(r:PhoneNumberRecord):String{ val seed=(r.id+r.number).hashCod
                     }
                 }
                 item{
-                    IOSSection(L("记录信息")){
+                    SettingsSection(L("记录信息")){
                         IOSInfoRow(L("创建时间"),r.createdAt.ifBlank{LocalDate.now().toString()})
                         IOSDividerLine()
                         IOSInfoRow(L("激活时间"),r.activatedAt.ifBlank{L("未记录")})
@@ -1687,16 +1857,18 @@ fun fakeEidForCard(r:PhoneNumberRecord):String{ val seed=(r.id+r.number).hashCod
     var m by remember(value){ mutableStateOf(parsed.monthValue.toString().padStart(2,'0')) }
     var d by remember(value){ mutableStateOf(parsed.dayOfMonth.toString().padStart(2,'0')) }
     fun commit(){
-        val yy=y.toIntOrNull() ?: parsed.year
+        if(y.isBlank() || m.isBlank() || d.isBlank()) return
+        val yy=(y.toIntOrNull() ?: parsed.year).coerceIn(1970,9999)
         val mm=(m.toIntOrNull() ?: parsed.monthValue).coerceIn(1,12)
-        val dd=(d.toIntOrNull() ?: parsed.dayOfMonth).coerceIn(1,28)
-        onChange(LocalDate.of(yy,mm,dd).toString())
+        val maxDay=java.time.YearMonth.of(yy,mm).lengthOfMonth()
+        val dd=(d.toIntOrNull() ?: parsed.dayOfMonth).coerceIn(1,maxDay)
+        onChange(runCatching{LocalDate.of(yy,mm,dd)}.getOrElse{LocalDate.now().plusDays(30)}.toString())
     }
     Column(verticalArrangement=Arrangement.spacedBy(9.dp)){
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
-            DateBox(L("年"),y,{y=it.filter{c->c.isDigit()}.take(4); if(y.length==4) commit()},Modifier.weight(1.25f))
-            DateBox(L("月"),m,{m=it.filter{c->c.isDigit()}.take(2); commit()},Modifier.weight(.85f))
-            DateBox(L("日"),d,{d=it.filter{c->c.isDigit()}.take(2); commit()},Modifier.weight(.85f))
+            DateBox(L("年"),y,{ v-> y=v.filter{c->c.isDigit()}.takeLast(4); commit() },Modifier.weight(1.25f))
+            DateBox(L("月"),m,{ v-> m=v.filter{c->c.isDigit()}.takeLast(2); commit() },Modifier.weight(.85f))
+            DateBox(L("日"),d,{ v-> d=v.filter{c->c.isDigit()}.takeLast(2); commit() },Modifier.weight(.85f))
         }
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(7.dp)){
             listOf(0,7,30,90).forEach{ n-> DateQuick(laterText(LocalAppLanguage.current,n),Modifier.weight(1f)){onChange(LocalDate.now().plusDays(n.toLong()).toString())} }
@@ -1709,23 +1881,33 @@ fun fakeEidForCard(r:PhoneNumberRecord):String{ val seed=(r.id+r.number).hashCod
 
 @Composable fun DateOnlyEditor(value:String,onChange:(String)->Unit){
     val parsed=runCatching{LocalDate.parse(value)}.getOrElse{LocalDate.now()}
-    var y by remember(value){ mutableStateOf(parsed.year.toString()) }
-    var m by remember(value){ mutableStateOf(parsed.monthValue.toString().padStart(2,'0')) }
-    var d by remember(value){ mutableStateOf(parsed.dayOfMonth.toString().padStart(2,'0')) }
+    var y by remember{ mutableStateOf(parsed.year.toString()) }
+    var m by remember{ mutableStateOf(parsed.monthValue.toString()) }
+    var d by remember{ mutableStateOf(parsed.dayOfMonth.toString()) }
+    // 仅当外部（如周期按钮）改变日期且与当前输入不一致时才同步，输入过程中不回填
+    LaunchedEffect(value){
+        val cur=runCatching{ LocalDate.of(y.toIntOrNull()?:0, m.toIntOrNull()?:0, d.toIntOrNull()?:0).toString() }.getOrNull()
+        if(cur!=value){
+            y=parsed.year.toString(); m=parsed.monthValue.toString(); d=parsed.dayOfMonth.toString()
+        }
+    }
     fun commit(){
-        val yy=y.toIntOrNull() ?: parsed.year
-        val mm=(m.toIntOrNull() ?: parsed.monthValue).coerceIn(1,12)
-        val dd=(d.toIntOrNull() ?: parsed.dayOfMonth).coerceIn(1,28)
-        onChange(LocalDate.of(yy,mm,dd).toString())
+        val yy=y.toIntOrNull() ?: return
+        val mm=m.toIntOrNull() ?: return
+        val dd=d.toIntOrNull() ?: return
+        if(mm !in 1..12) return
+        val maxDay=runCatching{ java.time.YearMonth.of(yy,mm).lengthOfMonth() }.getOrElse{31}
+        if(dd !in 1..maxDay) return
+        onChange(runCatching{LocalDate.of(yy,mm,dd)}.getOrNull()?.toString() ?: return)
     }
     Column(verticalArrangement=Arrangement.spacedBy(9.dp)){
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
-            DateBox(L("年"),y,{y=it.filter{c->c.isDigit()}.take(4); if(y.length==4) commit()},Modifier.weight(1.25f))
-            DateBox(L("月"),m,{m=it.filter{c->c.isDigit()}.take(2); commit()},Modifier.weight(.85f))
-            DateBox(L("日"),d,{d=it.filter{c->c.isDigit()}.take(2); commit()},Modifier.weight(.85f))
+            DateBox(L("年"),y,{ v-> y=v.filter{c->c.isDigit()}.take(4); commit() },Modifier.weight(1.25f))
+            DateBox(L("月"),m,{ v-> m=v.filter{c->c.isDigit()}.take(2); commit() },Modifier.weight(.85f))
+            DateBox(L("日"),d,{ v-> d=v.filter{c->c.isDigit()}.take(2); commit() },Modifier.weight(.85f))
         }
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(7.dp)){
-            listOf(0,7,30,90).forEach{ n-> DateQuick(laterText(LocalAppLanguage.current,n),Modifier.weight(1f)){onChange(LocalDate.now().plusDays(n.toLong()).toString())} }
+            listOf(0,7,30,90).forEach{ n-> DateQuick(laterText(LocalAppLanguage.current,n),Modifier.weight(1f)){ val nd=LocalDate.now().plusDays(n.toLong()); y=nd.year.toString(); m=nd.monthValue.toString(); d=nd.dayOfMonth.toString(); onChange(nd.toString()) } }
         }
     }
 }
@@ -1733,7 +1915,7 @@ fun fakeEidForCard(r:PhoneNumberRecord):String{ val seed=(r.id+r.number).hashCod
 @Composable fun DateBox(label:String,value:String,onValue:(String)->Unit,m:Modifier){
     Column(m,verticalArrangement=Arrangement.spacedBy(4.dp)){
         Text(label,fontSize=11.sp,color=Color(0xFF8A94A6))
-        OutlinedTextField(value=value,onValueChange=onValue,singleLine=true,modifier=Modifier.fillMaxWidth().height(48.dp),shape=RoundedCornerShape(12.dp),textStyle=androidx.compose.ui.text.TextStyle(fontSize=14.sp),colors=OutlinedTextFieldDefaults.colors(focusedBorderColor=Color(0xFFD1D5DB),unfocusedBorderColor=Color(0xFFD1D5DB),focusedContainerColor=Color.White,unfocusedContainerColor=Color.White))
+        OutlinedTextField(value=value,onValueChange=onValue,singleLine=true,modifier=Modifier.fillMaxWidth().heightIn(min=56.dp),shape=RoundedCornerShape(12.dp),textStyle=androidx.compose.ui.text.TextStyle(fontSize=14.sp),colors=OutlinedTextFieldDefaults.colors(focusedBorderColor=Color(0xFFD1D5DB),unfocusedBorderColor=Color(0xFFD1D5DB),focusedContainerColor=Color.White,unfocusedContainerColor=Color.White))
     }
 }
 
@@ -1761,7 +1943,7 @@ fun fakeEidForCard(r:PhoneNumberRecord):String{ val seed=(r.id+r.number).hashCod
                     Text(L("选择国家区号"),fontSize=20.sp,fontWeight=FontWeight.Bold,color=Color(0xFF111827),modifier=Modifier.weight(1f))
                     TextButton(onDismiss){Text(L("取消"),color=Color(0xFF007AFF))}
                 }
-                TextField(value=q,onValueChange={q=it},modifier=Modifier.fillMaxWidth().height(54.dp).clip(RoundedCornerShape(17.dp)),singleLine=true,placeholder={Text(L("搜索国家 / 区号 / ISO"))},leadingIcon={Text("⌕",color=Color(0xFF8E8E93))},colors=TextFieldDefaults.colors(focusedContainerColor=Color.White,unfocusedContainerColor=Color.White,focusedIndicatorColor=Color.Transparent,unfocusedIndicatorColor=Color.Transparent))
+                TextField(value=q,onValueChange={q=it},modifier=Modifier.fillMaxWidth().heightIn(min=56.dp).clip(RoundedCornerShape(17.dp)),singleLine=true,placeholder={Text(L("搜索国家 / 区号 / ISO"))},leadingIcon={Text("⌕",color=Color(0xFF8E8E93))},colors=TextFieldDefaults.colors(focusedContainerColor=Color.White,unfocusedContainerColor=Color.White,focusedIndicatorColor=Color.Transparent,unfocusedIndicatorColor=Color.Transparent))
                 LazyColumn(Modifier.heightIn(max=460.dp),verticalArrangement=Arrangement.spacedBy(7.dp)){
                     items(Countries.list.filter{it.name.contains(q,true)||it.code.contains(q)||it.iso.contains(q,true)}){ c->
                         Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(Color.White).clickable{onPick(c)}.padding(horizontal=13.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically){Text(c.flag,fontSize=24.sp);Spacer(Modifier.width(10.dp));Text(c.name,fontSize=16.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f));Text("${c.code}  ${c.iso}",fontSize=13.sp,color=Color(0xFF8A94A6));Spacer(Modifier.width(4.dp));Text("›",fontSize=22.sp,color=Color(0xFFC7C7CC))}
@@ -1847,6 +2029,7 @@ fun cloudPost(s:App设置,path:String,body:String,lang:String="简体中文",onR
     Column(Modifier.fillMaxSize().background(if(st.dark) Color(0xFF0B0F17) else Color(0xFFF2F3F7)).verticalScroll(rememberScrollState()).padding(horizontal=18.dp,vertical=12.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
         SettingsSection(L("外观")){
             IOSSwitchRow(L("深色模式"),st.dark){ st=st.copyMut{dark=it}; on(st) }
+            IOSSwitchRow(L("显示首页卡片国旗"),st.showFlag){ st=st.copyMut{showFlag=it}; on(st) }
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
                 Button({bgPicker.launch("image/*")},shape=RoundedCornerShape(14.dp)){Text(L("更改背景图片"))}
                 TextButton({st=st.copyMut{backgroundUri=""};on(st)}){Text(L("清除"))}
@@ -2005,7 +2188,7 @@ fun App设置.mutableState()= mutableStateOf(this)
 @Composable fun PlainInput(label:String,value:String,onValue:(String)->Unit){
     Column(verticalArrangement=Arrangement.spacedBy(4.dp)){
         Text(label,fontSize=13.sp,color=Color(0xFF374151))
-        OutlinedTextField(value=value,onValueChange=onValue,modifier=Modifier.fillMaxWidth().height(50.dp),singleLine=true,shape=RoundedCornerShape(13.dp),colors=OutlinedTextFieldDefaults.colors(focusedBorderColor=Color(0xFFD1D5DB),unfocusedBorderColor=Color(0xFFD1D5DB),focusedContainerColor=Color.White,unfocusedContainerColor=Color.White))
+        OutlinedTextField(value=value,onValueChange=onValue,modifier=Modifier.fillMaxWidth().heightIn(min=56.dp),singleLine=true,shape=RoundedCornerShape(13.dp),colors=OutlinedTextFieldDefaults.colors(focusedBorderColor=Color(0xFFD1D5DB),unfocusedBorderColor=Color(0xFFD1D5DB),focusedContainerColor=Color.White,unfocusedContainerColor=Color.White))
     }
 }
 
