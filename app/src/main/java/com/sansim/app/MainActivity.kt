@@ -100,6 +100,9 @@ import androidx.core.content.FileProvider
 import androidx.compose.ui.window.Dialog
 import kotlin.concurrent.thread
 import kotlin.math.roundToInt
+import com.sansim.app.update.UpdateInfo
+import com.sansim.app.update.UpdateChecker
+import com.sansim.app.update.UpdateDialog
 
 const val CHANNEL_ID = "san_sim_reminders"
 const val PREF = "san_sim_data"
@@ -251,6 +254,8 @@ class MainActivity: ComponentActivity(){ private val req=registerForActivityResu
     var filter by remember{ mutableStateOf("全部") }
     var sortMode by remember{ mutableStateOf("到期近") }
     var search by remember{ mutableStateOf("") }
+    var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
+    val currentVersion = try { ctx.packageManager.getPackageInfo(ctx.packageName,0).versionName ?: "0.0.0" } catch(_:Exception) { "0.0.0" }
     val colors=if(settings.dark) darkColorScheme(primary=Color(0xFF0A84FF),background=Color(0xFF0B0F17),surface=Color(0xFF151922)) else lightColorScheme(primary=Color(0xFF007AFF),background=Color(0xFFF4F5F7),surface=Color.White)
     val lang = settings.language
     fun tx(key:String)=tr(lang,key)
@@ -260,6 +265,16 @@ class MainActivity: ComponentActivity(){ private val req=registerForActivityResu
         }
     }
     MaterialTheme(colors){
+    LaunchedEffect(Unit) {
+        val now = System.currentTimeMillis()
+        val prefs = ctx.getSharedPreferences("update_prefs",0)
+        val last = prefs.getLong("last_check",0L)
+        if (now - last > 86400000L) {
+            val info = runCatching { UpdateChecker.check(currentVersion) }.getOrNull()
+            if (info != null) updateInfo = info
+            prefs.edit().putLong("last_check", now).apply()
+        }
+    }
         CompositionLocalProvider(LocalLayoutDirection provides if(settings.language=="阿拉伯语") LayoutDirection.Rtl else LayoutDirection.Ltr, LocalAppLanguage provides settings.language){
         run{ val editing = edit!=null
             if(editing && edit!=null){
@@ -289,9 +304,17 @@ class MainActivity: ComponentActivity(){ private val req=registerForActivityResu
                             "home"->Home(ctx,records,settings,search,filter,sortMode,{filter=it},{sortMode=if(sortMode=="到期近") "到期远" else "到期近"},{edit=PhoneNumberRecord()},{edit=it},{r->records=records.filter{it.id!=r.id};DataStore.saveRecords(ctx,records); autoCloudSync(records,settings)},{dial(ctx,it)},{trafficTarget=it},{r,months->val nr=r.copy(expireDate=LocalDate.parse(r.expireDate).plusDays(months.toLong()).toString());records=records.map{if(it.id==r.id)nr else it};DataStore.saveRecords(ctx,records); autoCloudSync(records,settings)})
                             "keep"->KeepPage(records,{r,m-> val nr=r.copy(expireDate=LocalDate.parse(r.expireDate).plusDays(m.toLong()).toString()); records=records.map{if(it.id==r.id)nr else it}; DataStore.saveRecords(ctx,records); autoCloudSync(records,settings)})
                             "tools"->ToolsPage(settings,records,{trafficTarget=it},{dial(ctx,it)},{ exportDialog="json" to exportRecordsJson(records,settings) },{ exportDialog="csv" to exportRecordsCsv(records) },{ text-> val imported=parseRecordsAny(text); if(imported.isNotEmpty()){ records=imported; DataStore.saveRecords(ctx,records); autoCloudSync(records,settings); toolMessage=tx("导入完成")+"：${records.size} "+tx("个号码") } else toolMessage=tx("导入失败：未识别 JSON/CSV 数据") })
-                            "settings"->设置Page(ctx,settings,records,{settings=it;DataStore.save设置(ctx,it); autoCloudSync(records,it)})
+                            "settings"->{
+                                设置Page(ctx,settings,records,currentVersion=currentVersion,onUpdateCheck={
+                                    kotlin.concurrent.thread {
+                                        val info = runCatching { kotlinx.coroutines.runBlocking { UpdateChecker.check(currentVersion) } }.getOrNull()
+                                        if (info != null) { updateInfo = info }
+                                    }
+                                },{s->settings=s;DataStore.save设置(ctx,s); autoCloudSync(records,s)})
+                            }
                             "countries"->CountryPage()
                         }
+                        updateInfo?.let { info -> UpdateDialog(currentVersion = currentVersion, updateInfo = info, onDismiss = { updateInfo = null }) }
                     }
                     SimHubBottomNav(screen){ screen=it }
                 }
@@ -1700,7 +1723,7 @@ fun cloudPost(s:App设置,path:String,body:String,lang:String="简体中文",onR
 }
 
 @OptIn(ExperimentalLayoutApi::class)
-@Composable fun 设置Page(ctx:Context,s:App设置,records:List<PhoneNumberRecord>,on:(App设置)->Unit){
+@Composable fun 设置Page(ctx:Context,s:App设置,records:List<PhoneNumberRecord>,currentVersion:String="0.0.0",onUpdateCheck:(()->Unit)?=null,on:(App设置)->Unit){
     var st by remember{s.mutableState()}
     var cloudMsg by remember{ mutableStateOf("") }
     val pageLang = LocalAppLanguage.current
@@ -1811,7 +1834,25 @@ fun cloudPost(s:App设置,path:String,body:String,lang:String="简体中文",onR
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
                 Box(Modifier.size(34.dp).clip(RoundedCornerShape(17.dp)).background(Color(0xFF007AFF)),contentAlignment=Alignment.Center){Text("i",color=Color.White,fontWeight=FontWeight.Bold)}
                 Spacer(Modifier.width(10.dp))
-                Text("Sim Jiang v2.8.63\n"+L("开发者")+"：伍六柒\n"+L("本地数据存储"),fontSize=13.sp,color=Color(0xFF4B5563),lineHeight=20.sp)
+                Text("Sim Jiang v"+currentVersion+"\n"+L("开发者")+"：伍六柒\n"+L("本地数据存储"),fontSize=13.sp,color=Color(0xFF4B5563),lineHeight=20.sp)
+            }
+            Spacer(Modifier.height(8.dp))
+            var checking by remember { mutableStateOf(false) }
+            Button(
+                onClick = {
+                    checking = true
+                    onUpdateCheck?.invoke()
+                    checking = false
+                },
+                enabled = !checking,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (checking) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(if (checking) "检查中..." else "检查更新")
             }
         }
         Spacer(Modifier.height(20.dp))
