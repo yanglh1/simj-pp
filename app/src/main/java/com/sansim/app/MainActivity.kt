@@ -151,7 +151,7 @@ object DataStore {
 }
 
 object NotificationHelper {
-    fun createChannel(ctx:Context){ if(Build.VERSION.SDK_INT>=26){ val nm=ctx.getSystemService(NotificationManager::class.java); nm.createNotificationChannel(NotificationChannel(CHANNEL_ID,"Sim Jiang 到期提醒",NotificationManager.IMPORTANCE_HIGH)) } }
+    fun createChannel(ctx:Context){ if(Build.VERSION.SDK_INT>=26){ val nm=ctx.getSystemService(NotificationManager::class.java); nm.createNotificationChannel(NotificationChannel(CHANNEL_ID,"simJ 到期提醒",NotificationManager.IMPORTANCE_HIGH)) } }
     fun notify(ctx:Context,id:Int,title:String,text:String,emailIntent:Intent?=null){
         val b=Notification.Builder(ctx,CHANNEL_ID).setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle(title).setContentText(text).setStyle(Notification.BigTextStyle().bigText(text)).setAutoCancel(true)
         if(emailIntent!=null){
@@ -183,7 +183,7 @@ object ReminderScheduler {
 class ReminderReceiver: BroadcastReceiver(){ override fun onReceive(ctx:Context,intent:Intent){
     val id=intent.getStringExtra("id"); val r=DataStore.loadRecords(ctx).firstOrNull{it.id==id}?:return
     val s=DataStore.load设置(ctx)
-    val subject="Sim Jiang 号码到期提醒：${r.operator.ifBlank{r.countryName}} ${r.countryCode} ${formatNumber(r.number)}"
+    val subject="simJ 号码到期提醒：${r.operator.ifBlank{r.countryName}} ${r.countryCode} ${formatNumber(r.number)}"
     val body=buildEmailBody(r,s)
     val msg="${r.flag} ${r.countryCode} ${formatNumber(r.number)} 将于 ${r.expireDate} 到期"
     if(s.notificationEnabled){
@@ -317,7 +317,7 @@ class MainActivity: ComponentActivity(){ private val req=registerForActivityResu
                                         val info = runCatching { kotlinx.coroutines.runBlocking { UpdateChecker.check(currentVersion) } }.getOrNull()
                                         if (info != null) { updateInfo = info }
                                     }
-                                },{s->settings=s;DataStore.save设置(ctx,s); autoCloudSync(records,s)})
+                                },on={s->settings=s;DataStore.save设置(ctx,s); autoCloudSync(records,s)},onTraffic={trafficTarget=it},onDial={dial(ctx,it)},onExportJson={exportDialog="json" to exportRecordsJson(records,settings)},onExportCsv={exportDialog="csv" to exportRecordsCsv(records)},onImportText={text-> val (imported,importedSettings)=parseRecordsAndSettings(text); if(imported.isNotEmpty()){ records=imported; DataStore.saveRecords(ctx,records); if(importedSettings!=null){ settings=importedSettings; DataStore.save设置(ctx,settings) }; autoCloudSync(records,settings); toolMessage=tx("导入完成")+"：${records.size} "+tx("个号码")+(if(importedSettings!=null) " + "+tx("配置已恢复") else "") } else toolMessage=tx("导入失败：未识别 JSON/CSV 数据") })
                             }
                             "countries"->CountryPage()
                             "esim"->EsimScreen()
@@ -358,7 +358,7 @@ class MainActivity: ComponentActivity(){ private val req=registerForActivityResu
                 }
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
                     Button({ clipboard.setText(AnnotatedString(content)) },modifier=Modifier.weight(1f).height(46.dp),shape=RoundedCornerShape(15.dp),colors=ButtonDefaults.buttonColors(containerColor=Color.White,contentColor=Color(0xFF007AFF))){Text(L("复制"))}
-                    Button({ shareExportFile(ctx,"SimJiang-export-${System.currentTimeMillis()}.$ext",if(ext=="csv") "text/csv" else "application/json",content,exportFileTitle) },modifier=Modifier.weight(1f).height(46.dp),shape=RoundedCornerShape(15.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF007AFF))){Text(L("导出文件"))}
+                    Button({ shareExportFile(ctx,"simJ-export-${System.currentTimeMillis()}.$ext",if(ext=="csv") "text/csv" else "application/json",content,exportFileTitle) },modifier=Modifier.weight(1f).height(46.dp),shape=RoundedCornerShape(15.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF007AFF))){Text(L("导出文件"))}
                 }
                 TextButton(onDismiss,modifier=Modifier.align(Alignment.CenterHorizontally)){Text(L("关闭"))}
             }
@@ -692,7 +692,7 @@ fun signalIcon(s:String)=when{ s.contains("离线")||s.contains("无") -> "○";
 @Composable fun SimHubBottomNav(screen:String,on:(String)->Unit){
     Surface(color=MaterialTheme.colorScheme.surface.copy(alpha=.98f),shadowElevation=7.dp){
         Row(Modifier.fillMaxWidth().height(70.dp).padding(horizontal=20.dp),horizontalArrangement=Arrangement.SpaceAround,verticalAlignment=Alignment.CenterVertically){
-            listOf("home" to L("号码"),"tools" to L("工具"),"esim" to "eSIM","settings" to L("设置")).forEach{ item->
+            listOf("home" to L("号码"),"esim" to "eSIM","settings" to L("设置")).forEach{ item->
                 val sel=screen==item.first
                 val scale by animateFloatAsState(targetValue=if(sel)1.02f else 1f,animationSpec=tween(120),label="navScale")
                 val tint=if(sel) Color(0xFF007AFF) else Color(0xFF8E8E93)
@@ -1814,7 +1814,7 @@ fun cloudPost(s:App设置,path:String,body:String,lang:String="简体中文",onR
 }
 
 @OptIn(ExperimentalLayoutApi::class)
-@Composable fun 设置Page(ctx:Context,s:App设置,records:List<PhoneNumberRecord>,currentVersion:String="0.0.0",onUpdateCheck:(()->Unit)?=null,on:(App设置)->Unit){
+@Composable fun 设置Page(ctx:Context,s:App设置,records:List<PhoneNumberRecord>,currentVersion:String="0.0.0",onUpdateCheck:(()->Unit)?=null,on:(App设置)->Unit,onTraffic:(PhoneNumberRecord)->Unit={},onDial:(PhoneNumberRecord)->Unit={},onExportJson:()->Unit={},onExportCsv:()->Unit={},onImportText:(String)->Unit={}){
     var st by remember{s.mutableState()}
     var cloudMsg by remember{ mutableStateOf("") }
     val pageLang = LocalAppLanguage.current
@@ -1914,6 +1914,23 @@ fun cloudPost(s:App设置,path:String,body:String,lang:String="简体中文",onR
         }
 
 
+        SettingsSection(L("工具")){
+            var pickTraffic by remember { mutableStateOf(false) }
+            var pickDial by remember { mutableStateOf(false) }
+            var importDlg by remember { mutableStateOf(false) }
+            var importText by remember { mutableStateOf("") }
+            ToolRow("traffic",L("刷流量"),L("选择一个号码执行真实下载流量测试")){ pickTraffic=true }
+            ToolRow("dial",L("拨号测试"),L("选择号码并打开系统拨号器")){ pickDial=true }
+            ToolRow("giffgaff","giffgaff eSIM 获取","打开 esim.kim/giffgaff 在线工具"){
+                runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://esim.kim/giffgaff"))) }.onFailure { Toast.makeText(ctx, "无法打开浏览器：${it.message}", Toast.LENGTH_SHORT).show() }
+            }
+            ToolRow("export_json",L("导出 JSON"),L("生成完整 JSON 备份文本")){ onExportJson() }
+            ToolRow("export_csv",L("导出 CSV"),L("生成 CSV 表格文本")){ onExportCsv() }
+            ToolRow("import",L("导入数据"),L("粘贴 JSON 或 CSV 恢复号码列表")){ importDlg=true }
+            if(pickTraffic) NumberPickerDialog(L("选择刷流量号码"),records,{pickTraffic=false}){ pickTraffic=false; onTraffic(it) }
+            if(pickDial) NumberPickerDialog(L("选择拨号号码"),records,{pickDial=false}){ pickDial=false; onDial(it) }
+            if(importDlg) IOSImportDialog(importText,{importText=it},{importDlg=false},{ onImportText(importText); importDlg=false },ctx)
+        }
         SettingsSection(L("语言 / Language")){
             Text(L("当前语言：")+st.language,fontSize=13.sp,color=Color(0xFF8A94A6))
             FlowRow(horizontalArrangement=Arrangement.spacedBy(7.dp),verticalArrangement=Arrangement.spacedBy(7.dp)){
@@ -1925,7 +1942,7 @@ fun cloudPost(s:App设置,path:String,body:String,lang:String="简体中文",onR
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
                 Box(Modifier.size(34.dp).clip(RoundedCornerShape(17.dp)).background(Color(0xFF007AFF)),contentAlignment=Alignment.Center){Text("i",color=Color.White,fontWeight=FontWeight.Bold)}
                 Spacer(Modifier.width(10.dp))
-                Text("Sim Jiang v"+currentVersion+"\n"+L("开发者")+"：伍六柒\n"+L("本地数据存储"),fontSize=13.sp,color=Color(0xFF4B5563),lineHeight=20.sp)
+                Text("simJ v"+currentVersion+"\n"+L("开发者")+"：伍六柒\n"+L("本地数据存储"),fontSize=13.sp,color=Color(0xFF4B5563),lineHeight=20.sp)
             }
             Spacer(Modifier.height(8.dp))
             var checking by remember { mutableStateOf(false) }

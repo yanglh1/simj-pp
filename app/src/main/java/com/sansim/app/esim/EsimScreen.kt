@@ -32,6 +32,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.activity.compose.rememberLauncherForActivityResult
+import android.net.Uri
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.common.InputImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -328,20 +332,7 @@ fun EsimScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            item {
-                SlimInfoCard(
-                    cardBg = cardBg,
-                    textPrimary = textPrimary,
-                    textSecondary = textSecondary,
-                    textMuted = textMuted,
-                    borderColor = borderColor,
-                    title = "SIMKit 数据库",
-                    subtitle = dbStats,
-                    trailing = "离线"
-                ) {
-                    Text("用于运营商识别、APN 查询、Profile 容量估算。", fontSize = 12.sp, color = textMuted, lineHeight = 17.sp)
-                }
-            }
+
 
             item {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 2.dp)) {
@@ -598,6 +589,21 @@ private fun DownloadProfileDialog(
         showScanner = false
     }
 
+    val context = LocalContext.current
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri ?: return@rememberLauncherForActivityResult
+        try {
+            val image = InputImage.fromFilePath(context, uri)
+            BarcodeScanning.getClient().process(image)
+                .addOnSuccessListener { codes ->
+                    val value = codes.firstOrNull()?.rawValue
+                    if (!value.isNullOrBlank()) applyScanned(value)
+                }
+        } catch (_: Exception) {}
+    }
+
     val dark = LocalIsDark.current
     fun c(light: Color, darkColor: Color) = if (dark) darkColor else light
     val dialogBg = c(Color(0xFFF2F3F7), Color(0xFF1C1C1E))
@@ -632,12 +638,19 @@ private fun DownloadProfileDialog(
                     }
                     TextButton(onClick = onDismiss) { Text("取消") }
                 }
-                Button(
-                    onClick = { showScanner = true },
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007AFF))
-                ) { Text("扫码二维码") }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = { showScanner = true },
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007AFF))
+                    ) { Text("扫码二维码") }
+                    OutlinedButton(
+                        onClick = { galleryLauncher.launch("image/*") },
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.weight(1f).height(48.dp)
+                    ) { Text("从相册选择") }
+                }
                 OutlinedTextField(
                     value = raw,
                     onValueChange = { raw = it; parseLpa(it) },

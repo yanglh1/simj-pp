@@ -94,7 +94,7 @@ def send_mail(cfg, subject, body):
     if not (host and user and pwd and to): return False, 'SMTP 未配置完整'
     msg=MIMEText(body,'plain','utf-8')
     msg['Subject']=Header(subject,'utf-8')
-    msg['From']=formataddr(('SimJiang', sender))
+    msg['From']=formataddr(('simJ', sender))
     msg['To']=to
     try:
         ctx=ssl.create_default_context()
@@ -109,7 +109,7 @@ def reminder_text(r, left):
     op=r.get('operator') or r.get('countryName') or 'SIM'
     num=mask_number(r.get('number',''))
     exp=r.get('expireDate','')
-    return f"⏰ SimJiang 到期提醒\n{r.get('flag','')} {op} {r.get('countryCode','')} {num}\n到期日期：{exp}\n剩余天数：{left} 天"
+    return f"⏰ simJ 到期提醒\n{r.get('flag','')} {op} {r.get('countryCode','')} {num}\n到期日期：{exp}\n剩余天数：{left} 天"
 
 def check_once(only_key=None):
     conn=db(); today=date.today().isoformat()
@@ -130,7 +130,7 @@ def check_once(only_key=None):
             if left is None or left<0 or left>remind: continue
             stats['due']+=1
             text=reminder_text(r,left)
-            subject='SimJiang 到期提醒：'+mask_number(r.get('number',''))
+            subject='simJ 到期提醒：'+mask_number(r.get('number',''))
             if cloud_tg and settings.get('tgEnabled') and settings.get('botToken') and settings.get('chatId'):
                 if not conn.execute('select 1 from sent_log where api_key=? and record_id=? and channel=? and day=?',(api,rid,'tg',today)).fetchone():
                     try:
@@ -184,11 +184,11 @@ class H(BaseHTTPRequestHandler):
             return self._json(200, {'ok':True,'records':len(payload.get('records') or []),'message':'同步成功','apiKeyTail':api_key[-6:]})
         if self.path.startswith('/api/test-telegram'):
             s=payload.get('settings') or payload
-            ok,msg=send_tg(s.get('botToken'),s.get('chatId'),'✅ SimJiang 云端 Telegram 测试成功\nKey: ****'+api_key[-6:])
+            ok,msg=send_tg(s.get('botToken'),s.get('chatId'),'✅ simJ 云端 Telegram 测试成功\nKey: ****'+api_key[-6:])
             return self._json(200, {'ok':ok,'message':msg})
         if self.path.startswith('/api/test-email'):
             s=payload.get('settings') or payload
-            ok,msg=send_mail(s,'SimJiang 云端邮件测试','✅ SimJiang 云端邮件测试成功。\nKey: ****'+api_key[-6:])
+            ok,msg=send_mail(s,'simJ 云端邮件测试','✅ simJ 云端邮件测试成功。\nKey: ****'+api_key[-6:])
             return self._json(200, {'ok':ok,'message':msg})
         if self.path.startswith('/api/check-now'):
             stats=check_once(api_key); return self._json(200, {'ok':True,'message':'已触发当前 Key 检查','stats':stats})
@@ -198,5 +198,5 @@ class H(BaseHTTPRequestHandler):
 if __name__=='__main__':
     BASE.mkdir(parents=True, exist_ok=True); db().close()
     threading.Thread(target=loop,daemon=True).start()
-    print(f'SimJiang reminder v2 multi-user listening on {HOST}:{PORT}', flush=True)
+    print(f'simJ reminder v2 multi-user listening on {HOST}:{PORT}', flush=True)
     ThreadingHTTPServer((HOST,PORT),H).serve_forever()
