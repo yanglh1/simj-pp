@@ -1,41 +1,32 @@
-# SimJiang
+# simJ
 
-SimJiang 是一款完全免费的 SIM / eSIM 号码资产管理与保号提醒 Android 工具。
+simJ — SIM 卡 & eSIM 全能管家。
+
+一款专为多卡用户打造的号码保号 + eSIM 管理 Android 工具。
 
 ## 功能
 
-- SIM / eSIM 号码记录管理
-- 国家/区号/运营商信息
-- 到期日期与保号周期管理
-- 本地通知提醒
-- Telegram / SMTP 邮件提醒
-- 云端提醒服务：多用户 API Key、按 Key 隔离数据、服务器定时检查到期
-- 自动同步：新增、编辑、删除、保号、导入和提醒配置变更后自动同步
-- 刷流量真实下载测试
-- JSON/CSV 数据导入导出
-- 深浅色与自定义背景
-- 多语言界面：简体中文、繁体中文、English、日本語、阿拉伯语
-
-## 云端提醒
-
-App 默认使用云端地址：
-
-```text
-https://ccs.ziranaa.top:16670
-```
-
-服务端源码在：
-
-```text
-server/simjiang-reminder/
-```
-
-## TG 频道
-
-https://t.me/simjiangAPP
+- 📱 **号码保号管理** — 130+ 国家号码录入，智能到期提醒，批量管理
+- 🌐 **eSIM 管理** — 内置 eSIM (OMAPI) + USB 实体卡双通道，扫码/相册/手动下载 Profile
+- ☁️ **云端提醒** — Telegram Bot / SMTP 邮件 / 云端 API 同步
+- 🛠️ **实用工具** — 刷流量测试、拨号测试、JSON/CSV 导入导出
+- 🌙 **深色模式** — 全局适配
+- 🌍 **多语言** — 简体中文、繁体中文、English、日本語、阿拉伯语 (RTL)
+- 🔒 **本地存储** — 数据不上传，隐私安全
+- 🚫 **零广告** — 纯工具，无打扰
 
 ## 构建
 
 ```bash
 gradle assembleDebug --no-daemon --max-workers=1
+```
+
+## 下载
+
+[Latest Release](https://github.com/yanglh1/SimJ/releases)
+
+## 云端提醒服务端
+
+```text
+server/simjiang-reminder/
 ```
