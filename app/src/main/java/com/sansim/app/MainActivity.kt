@@ -15,6 +15,8 @@ import com.sansim.app.i18n.cycleText
 import com.sansim.app.util.LocalAppLanguage
 import com.sansim.app.util.L
 import com.sansim.app.util.LT
+import com.sansim.app.util.CardBackgroundLoader
+import androidx.compose.foundation.Image
 
 
 
@@ -1428,7 +1430,16 @@ object OperatorLogoAssets {
 @Composable fun Stat(t:String,v:String,m:Modifier){ SimHubStat(t,v,Color(0xFF007AFF),m) }
 @Composable fun NumberCard(r:PhoneNumberRecord,on编辑:(PhoneNumberRecord)->Unit,onDel:(PhoneNumberRecord)->Unit,onDial:(PhoneNumberRecord)->Unit,onTraffic:(PhoneNumberRecord)->Unit,onKeep:(PhoneNumberRecord,Int)->Unit){ SimHubCard(r,on编辑,onDel,onDial,onTraffic,onKeep) }
 
+@Composable
+fun rememberCardBackground(countryCode: String): ImageBitmap? {
+    val context = LocalContext.current
+    return androidx.compose.runtime.remember(countryCode) {
+        CardBackgroundLoader.loadCardBackground(context, countryCode)
+    }
+}
+
 @Composable fun SimHubCard(r:PhoneNumberRecord,on编辑:(PhoneNumberRecord)->Unit,onDel:(PhoneNumberRecord)->Unit,onDial:(PhoneNumberRecord)->Unit,onTraffic:(PhoneNumberRecord)->Unit,onKeep:(PhoneNumberRecord,Int)->Unit){
+    val cardBgImage = rememberCardBackground(r.countryCode)
     val exp=runCatching{LocalDate.parse(r.expireDate)}.getOrNull()
     val today=LocalDate.now()
     val days=exp?.toEpochDay()?.minus(today.toEpochDay())
@@ -1437,6 +1448,16 @@ object OperatorLogoAssets {
     var menu by remember{ mutableStateOf(false) }
     var confirm删除 by remember{ mutableStateOf(false) }
     Card(shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=dk(Color(0xF81C1C1E),Color(0xF8FFFFFF))),elevation=CardDefaults.cardElevation(defaultElevation=6.dp),modifier=Modifier.fillMaxWidth().padding(vertical=2.dp).border(1.dp,dk(Color(0xFF2C2C2E).copy(alpha=.70f),Color.White.copy(alpha=.70f)),RoundedCornerShape(24.dp))){
+        Box(Modifier.fillMaxWidth()){
+            if(cardBgImage != null){
+                Image(
+                    bitmap = cardBgImage,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxWidth().matchParentSize().clip(RoundedCornerShape(20.dp)),
+                    contentScale = ContentScale.Crop,
+                    alpha = 0.3f
+                )
+            }
         Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.Top){
                 Box(Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).background(dk(Color(0xFF2C2C2E),Color(0xFFF1F5FA))),contentAlignment=Alignment.Center){Text(r.flag,fontSize=25.sp)}
@@ -1455,6 +1476,7 @@ object OperatorLogoAssets {
             TextButton(onClick={menu=!menu},contentPadding=PaddingValues(0.dp)){Text(if(menu) L("隐藏详情") else "⌄ "+L("显示二维码"),color=Color(0xFF007AFF),fontSize=14.sp)}
         }
     }
+}
     if(menu){
         Card(shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=dk(Color(0xFF1C1C1E),Color.White)),elevation=CardDefaults.cardElevation(0.dp),modifier=Modifier.fillMaxWidth().padding(top=8.dp)){
             Column{
