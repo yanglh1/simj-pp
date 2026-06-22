@@ -15,8 +15,6 @@ import com.sansim.app.i18n.cycleText
 import com.sansim.app.util.LocalAppLanguage
 import com.sansim.app.util.L
 import com.sansim.app.util.LT
-import com.sansim.app.util.CardBackgroundLoader
-import androidx.compose.foundation.Image
 
 
 
@@ -426,13 +424,14 @@ fun shareExportFile(ctx:Context,fileName:String,mime:String,content:String,title
     var hidden by remember{ mutableStateOf(true) }
     var del by remember{ mutableStateOf(false) }
     var keep by remember{ mutableStateOf(false) }
-    val cardBg=if(dark) Color(0xFF1E2430).copy(alpha=.85f) else Color.White.copy(alpha=.35f); val cardBorder=if(dark) Color(0xFF2A3040).copy(alpha=.60f) else Color.White.copy(alpha=.50f); val txtPrimary=if(dark) Color(0xFFE8EAED) else Color(0xFF111827); val txtSecondary=if(dark) Color(0xFF9AA0A6) else Color(0xFF6B7280); val txtBody=if(dark) Color(0xFFD1D5DB) else Color(0xFF374151)
+    val cardBg=if(dark) Color(0xFF1E2430).copy(alpha=.85f) else Color.White.copy(alpha=.35f); val cardBorder=if(dark) Color(0xFF2A3040).copy(alpha=.60f) else Color.White.copy(alpha=.50f); val txtPrimary=if(dark) Color(0xFFE8EAED) else Color.White; val txtSecondary=if(dark) Color(0xFF9AA0A6) else Color.White.copy(alpha=.85f); val txtBody=if(dark) Color(0xFFD1D5DB) else Color.White.copy(alpha=.9f)
     Card(shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(containerColor=cardBg),elevation=CardDefaults.cardElevation(0.dp),modifier=Modifier.fillMaxWidth().height(150.dp).border(1.dp,cardBorder,RoundedCornerShape(24.dp))){
         Box(Modifier.fillMaxSize()){
             // frosted glass shimmer
             val glass=if(dark) listOf(Color(0xFF1E2430).copy(alpha=.15f),Color(0xFF1E2430).copy(alpha=.06f),Color(0xFF1E2430).copy(alpha=.12f)) else listOf(Color.White.copy(alpha=.18f),Color.White.copy(alpha=.08f),Color.White.copy(alpha=.15f)); Box(Modifier.fillMaxSize().background(Brush.verticalGradient(glass)).clip(RoundedCornerShape(24.dp)))
             if(showFlag){
-                FlagArtPanel(r,Modifier.align(Alignment.CenterEnd).fillMaxHeight().fillMaxWidth(.43f))
+                FlagArtPanel(r,Modifier.fillMaxSize())
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.3f)))
             }
             Column(Modifier.fillMaxSize().padding(start=10.dp,end=10.dp,top=7.dp,bottom=6.dp),verticalArrangement=Arrangement.SpaceBetween){
                 Row(verticalAlignment=Alignment.CenterVertically){
@@ -1430,16 +1429,7 @@ object OperatorLogoAssets {
 @Composable fun Stat(t:String,v:String,m:Modifier){ SimHubStat(t,v,Color(0xFF007AFF),m) }
 @Composable fun NumberCard(r:PhoneNumberRecord,on编辑:(PhoneNumberRecord)->Unit,onDel:(PhoneNumberRecord)->Unit,onDial:(PhoneNumberRecord)->Unit,onTraffic:(PhoneNumberRecord)->Unit,onKeep:(PhoneNumberRecord,Int)->Unit){ SimHubCard(r,on编辑,onDel,onDial,onTraffic,onKeep) }
 
-@Composable
-fun rememberCardBackground(countryCode: String): ImageBitmap? {
-    val context = LocalContext.current
-    return androidx.compose.runtime.remember(countryCode) {
-        CardBackgroundLoader.loadCardBackground(context, countryCode)
-    }
-}
-
 @Composable fun SimHubCard(r:PhoneNumberRecord,on编辑:(PhoneNumberRecord)->Unit,onDel:(PhoneNumberRecord)->Unit,onDial:(PhoneNumberRecord)->Unit,onTraffic:(PhoneNumberRecord)->Unit,onKeep:(PhoneNumberRecord,Int)->Unit){
-    val cardBgImage = rememberCardBackground(r.countryCode)
     val exp=runCatching{LocalDate.parse(r.expireDate)}.getOrNull()
     val today=LocalDate.now()
     val days=exp?.toEpochDay()?.minus(today.toEpochDay())
@@ -1448,35 +1438,22 @@ fun rememberCardBackground(countryCode: String): ImageBitmap? {
     var menu by remember{ mutableStateOf(false) }
     var confirm删除 by remember{ mutableStateOf(false) }
     Card(shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=dk(Color(0xF81C1C1E),Color(0xF8FFFFFF))),elevation=CardDefaults.cardElevation(defaultElevation=6.dp),modifier=Modifier.fillMaxWidth().padding(vertical=2.dp).border(1.dp,dk(Color(0xFF2C2C2E).copy(alpha=.70f),Color.White.copy(alpha=.70f)),RoundedCornerShape(24.dp))){
-        Row(Modifier.fillMaxWidth()){
-            Column(Modifier.weight(1f).padding(16.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
-                Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.Top){
-                    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
-                        Row(verticalAlignment=Alignment.CenterVertically){
-                            Text(r.operator.ifBlank{r.countryName},fontSize=18.sp,fontWeight=FontWeight.Bold,color=dk(Color(0xFFE5E5E7),Color(0xFF111827)),maxLines=1,overflow=TextOverflow.Ellipsis,modifier=Modifier.weight(1f,false))
-                            if(longTerm){ Spacer(Modifier.width(6.dp)); Text(L("长期号码"),fontSize=11.sp,color=Color.White,fontWeight=FontWeight.Bold,modifier=Modifier.clip(RoundedCornerShape(8.dp)).background(Color(0xFF007AFF)).padding(horizontal=6.dp,vertical=2.dp)) }
-                        }
-                        Row(verticalAlignment=Alignment.CenterVertically){Text(if(r.note.isBlank()) L("预付费") else r.note,fontSize=12.sp,color=Color(0xFF6B7280),maxLines=1,overflow=TextOverflow.Ellipsis); Spacer(Modifier.width(7.dp)); Text(if(days==null) "无到期日" else if(days<0) "❌ "+expireText(LocalAppLanguage.current,days) else "✅ "+r.expireDate+" · "+expireText(LocalAppLanguage.current,days),fontSize=13.sp,color=if(days!=null&&days<0) Color(0xFFFF3B30) else Color(0xFF34C759),maxLines=1,overflow=TextOverflow.Ellipsis)}
+        Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
+            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.Top){
+                Box(Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).background(dk(Color(0xFF2C2C2E),Color(0xFFF1F5FA))),contentAlignment=Alignment.Center){Text(r.flag,fontSize=25.sp)}
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
+                    Row(verticalAlignment=Alignment.CenterVertically){
+                        Text(r.operator.ifBlank{r.countryName},fontSize=18.sp,fontWeight=FontWeight.Bold,color=dk(Color(0xFFE5E5E7),Color(0xFF111827)),maxLines=1,overflow=TextOverflow.Ellipsis,modifier=Modifier.weight(1f,false))
+                        if(longTerm){ Spacer(Modifier.width(6.dp)); Text(L("长期号码"),fontSize=11.sp,color=Color.White,fontWeight=FontWeight.Bold,modifier=Modifier.clip(RoundedCornerShape(8.dp)).background(Color(0xFF007AFF)).padding(horizontal=6.dp,vertical=2.dp)) }
                     }
-                }
-                LinearProgressIndicator(progress={progress},modifier=Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(5.dp)),color=Color(0xFF34C759),trackColor=dk(Color(0xFF2C2C2E),Color(0xFFE9EDF3)))
-                Row(verticalAlignment=Alignment.CenterVertically){Text("☎",fontSize=16.sp); Spacer(Modifier.width(7.dp)); Text(r.countryCode+" "+maskNumber(formatNumber(r.number)),fontSize=13.sp,color=Color(0xFF4B5563),modifier=Modifier); Text("👁",fontSize=15.sp)}
-                Row(verticalAlignment=Alignment.CenterVertically){Text("#",fontSize=14.sp,fontWeight=FontWeight.Bold); Spacer(Modifier.width(7.dp)); Text("EID: "+fakeEidForCard(r),fontSize=12.sp,color=dk(Color(0xFF8E8E93),Color(0xFF6B7280)),maxLines=1,overflow=TextOverflow.Ellipsis)}
-                TextButton(onClick={menu=!menu},contentPadding=PaddingValues(0.dp)){Text(if(menu) L("隐藏详情") else "⌄ "+L("显示二维码"),color=Color(0xFF007AFF),fontSize=14.sp)}
-            }
-            if(cardBgImage != null){
-                Box(Modifier.width(120.dp).fillMaxHeight()){
-                    Image(
-                        bitmap = cardBgImage,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(topEnd=20.dp, bottomEnd=20.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.3f)),contentAlignment=Alignment.Center){
-                        Text(r.countryName,fontSize=16.sp,fontWeight=FontWeight.Bold,color=Color.White)
-                    }
+                    Row(verticalAlignment=Alignment.CenterVertically){Text(if(r.note.isBlank()) L("预付费") else r.note,fontSize=12.sp,color=Color(0xFF6B7280),maxLines=1,overflow=TextOverflow.Ellipsis); Spacer(Modifier.width(7.dp)); Text(if(days==null) "无到期日" else if(days<0) "❌ "+expireText(LocalAppLanguage.current,days) else "✅ ${r.expireDate} · "+expireText(LocalAppLanguage.current,days),fontSize=13.sp,color=if(days!=null&&days<0) Color(0xFFFF3B30) else Color(0xFF34C759),maxLines=1,overflow=TextOverflow.Ellipsis)}
                 }
             }
+            LinearProgressIndicator(progress={progress},modifier=Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(5.dp)),color=Color(0xFF34C759),trackColor=dk(Color(0xFF2C2C2E),Color(0xFFE9EDF3)))
+            Row(verticalAlignment=Alignment.CenterVertically){Text("☎",fontSize=16.sp); Spacer(Modifier.width(7.dp)); Text("${r.countryCode} ${maskNumber(formatNumber(r.number))}",fontSize=13.sp,color=Color(0xFF4B5563),modifier=Modifier); Text("👁",fontSize=15.sp)}
+            Row(verticalAlignment=Alignment.CenterVertically){Text("#",fontSize=14.sp,fontWeight=FontWeight.Bold); Spacer(Modifier.width(7.dp)); Text("EID: ${fakeEidForCard(r)}",fontSize=12.sp,color=dk(Color(0xFF8E8E93),Color(0xFF6B7280)),maxLines=1,overflow=TextOverflow.Ellipsis)}
+            TextButton(onClick={menu=!menu},contentPadding=PaddingValues(0.dp)){Text(if(menu) L("隐藏详情") else "⌄ "+L("显示二维码"),color=Color(0xFF007AFF),fontSize=14.sp)}
         }
     }
     if(menu){
@@ -1490,9 +1467,8 @@ fun rememberCardBackground(countryCode: String): ImageBitmap? {
             }
         }
     }
-    if(confirm删除) IOSConfirmDialog(L("删除号码？"),L("删除")+" "+r.countryCode+" "+formatNumber(r.number)+" "+L("删除后不可恢复"),true,{confirm删除=false},{confirm删除=false;onDel(r)})
+    if(confirm删除) IOSConfirmDialog(L("删除号码？"),L("删除")+" ${r.countryCode} ${formatNumber(r.number)} "+L("删除后不可恢复"),true,{confirm删除=false},{confirm删除=false;onDel(r)})
 }
-
 
 @Composable fun MenuRow(icon:String,title:String,color:Color,onClick:()->Unit){ Row(Modifier.fillMaxWidth().clickable{onClick()}.padding(horizontal=16.dp,vertical=14.dp),verticalAlignment=Alignment.CenterVertically){Text(icon,fontSize=18.sp); Spacer(Modifier.width(10.dp)); Text(title,fontSize=16.sp,color=color,fontWeight=if(color==Color(0xFFFF3B30)) FontWeight.Bold else FontWeight.Normal)} }
 fun maskNumber(n:String):String{ val ds=n.filter{it.isDigit()}; return if(ds.length<=4) n else ds.take(4)+" •••• "+ds.takeLast(4) }
