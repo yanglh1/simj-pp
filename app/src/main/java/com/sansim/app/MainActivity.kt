@@ -635,6 +635,7 @@ fun countryTheme(code:String,name:String):List<Color>{
     }
 }
 
+
 @Composable fun FlagArtPanel(r:PhoneNumberRecord,m:Modifier){
     val ctx = LocalContext.current
     val colors=countryTheme(r.countryCode,r.countryName)
@@ -646,8 +647,9 @@ fun countryTheme(code:String,name:String):List<Color>{
             r.countryName.contains("澳门") -> "MO"
             else -> ""
         }
-    val assetPath = if(iso.isBlank()) "" else "flag_backgrounds/${iso.lowercase()}.png"
-    val flagBitmap = rememberAssetBitmap(assetPath)
+    val assetJpg = if(iso.isBlank()) "" else "flag_backgrounds/${iso.lowercase()}.jpg"
+    val assetPng = if(iso.isBlank()) "" else "flag_backgrounds/${iso.lowercase()}.png"
+    val flagBitmap = rememberAssetBitmap(assetJpg) ?: rememberAssetBitmap(assetPng)
     Box(m.background(Brush.linearGradient(colors)),contentAlignment=Alignment.Center){
         if(flagBitmap != null){
             Image(bitmap=flagBitmap,contentDescription=r.countryName,contentScale=ContentScale.FillBounds,modifier=Modifier.fillMaxSize().graphicsLayer(alpha=.96f))
@@ -1327,10 +1329,12 @@ object OperatorLogoAssets {
 @Composable fun KeepChoice(text:String,selected:Boolean,onClick:()->Unit){ Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if(selected) dk(Color(0xFF1C2333),Color(0xFFEAF3FF)) else dk(Color(0xFF1C1C1E),Color.White)).clickable{onClick()}.padding(14.dp),verticalAlignment=Alignment.CenterVertically){Text(if(selected)"●" else "○",color=Color(0xFF007AFF));Spacer(Modifier.width(10.dp));Text(text,fontSize=16.sp,fontWeight=if(selected)FontWeight.Bold else FontWeight.Normal)} }
 
 
-@Composable fun ToolsPage(ctx:Context,settings:App设置,records:List<PhoneNumberRecord>,onTraffic:(PhoneNumberRecord)->Unit,onDial:(PhoneNumberRecord)->Unit,onExportJson:()->Unit,onExportCsv:()->Unit,onImportText:(String)->Unit){
+@Composable fun ToolsPage(ctx:Context,settings:App设置,records:List<PhoneNumberRecord>,onTraffic:(PhoneNumberRecord)->Unit,onDial:(PhoneNumberRecord)->Unit,onExportJson:()->Unit,onExportCsv:()->Unit,onImportText:(String)->Unit,onImportSimHub:(List<PhoneNumberRecord>) ->Unit={_->}){
     var pickTraffic by remember{ mutableStateOf(false) }
     var pickDial by remember{ mutableStateOf(false) }
     var importDlg by remember{ mutableStateOf(false) }
+    var exportSimHub by remember{ mutableStateOf(false) }
+    var importSimHub by remember{ mutableStateOf(false) }
     var importText by remember{ mutableStateOf("") }
     Box(Modifier.fillMaxSize()){
         AppBackground(settings)
@@ -1342,6 +1346,8 @@ object OperatorLogoAssets {
                     ToolRow("export_json",L("导出 JSON"),L("生成完整 JSON 备份文本")){ onExportJson() }
                     ToolRow("export_csv",L("导出 CSV"),L("生成 CSV 表格文本")){ onExportCsv() }
                     ToolRow("import",L("导入数据"),L("粘贴 JSON 或 CSV 恢复号码列表")){ importDlg=true }
+                    ToolRow("export_json",L("导出 SimHub"),L("导出为 SimHub JSON 兼容格式")){ exportSimHub=true }
+                    ToolRow("import",L("导入 SimHub"),L("从 SimHub JSON 文件导入号码")){ importSimHub=true }
                 }
             }
         }
@@ -1349,6 +1355,28 @@ object OperatorLogoAssets {
     if(pickTraffic) NumberPickerDialog(L("选择刷流量号码"),records,{pickTraffic=false}){ pickTraffic=false; onTraffic(it) }
     if(pickDial) NumberPickerDialog(L("选择拨号号码"),records,{pickDial=false}){ pickDial=false; onDial(it) }
     if(importDlg) IOSImportDialog(importText,{importText=it},{importDlg=false},{onImportText(importText);importDlg=false},ctx)
+    if(exportSimHub){
+        val json = com.sansim.app.util.SimHubCompat.exportToJson(records)
+        AlertDialog(onDismissRequest={exportSimHub=false},
+            title={Text(L("导出 SimHub JSON"))},
+            text={Text(L("已生成")+" ${records.size} "+L("个号码的 SimHub 兼容 JSON"))},
+            confirmButton={
+                Row{
+                    val exportTitle=L("导出 SimHub"); Button({shareExportFile(ctx,"simj-simhub-export.json","application/json",json,exportTitle)},colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF007AFF))){Text(L("分享"))}
+                    Spacer(Modifier.width(8.dp))
+                    Button({exportSimHub=false},colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF8E8E93))){Text(L("关闭"))}
+                }
+            })
+    }
+    val simHubImportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()){ uri->
+        if(uri!=null){
+            val imported = com.sansim.app.util.SimHubCompat.importFromJson(ctx,uri)
+            if(imported.isNotEmpty()){
+                onImportSimHub(imported)
+            }
+        }
+    }
+    LaunchedEffect(importSimHub){ if(importSimHub){ simHubImportLauncher.launch("application/json"); importSimHub=false } }
 }
 
 @Composable fun ToolRow(iconType:String,title:String,sub:String,onClick:()->Unit){
