@@ -100,6 +100,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.core.content.FileProvider
 import com.sansim.app.esim.EsimScreen
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.Popup
 import kotlin.concurrent.thread
 import kotlin.math.roundToInt
 import com.sansim.app.update.UpdateInfo
@@ -419,13 +420,16 @@ fun shareExportFile(ctx:Context,fileName:String,mime:String,content:String,title
 }
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable fun CompactSimCard(r:PhoneNumberRecord,on编辑:(PhoneNumberRecord)->Unit,onDel:(PhoneNumberRecord)->Unit,onTraffic:(PhoneNumberRecord)->Unit,onKeep:(PhoneNumberRecord,Int)->Unit,days:Long?,remindDays:Int,showFlag:Boolean=true,dark:Boolean=false){
     val progress=when{days==null->.35f; days<0->.04f; else->(days.coerceIn(0,120).toFloat()/120f).coerceIn(.08f,.98f)}
     var hidden by remember{ mutableStateOf(true) }
     var del by remember{ mutableStateOf(false) }
     var keep by remember{ mutableStateOf(false) }
+    var showMenu by remember{ mutableStateOf(false) }
     val cardBg=if(dark) Color(0xFF1E2430).copy(alpha=.85f) else Color.White.copy(alpha=.35f); val cardBorder=if(dark) Color(0xFF2A3040).copy(alpha=.60f) else Color.White.copy(alpha=.50f); val txtPrimary=if(dark) Color(0xFFE8EAED) else if(showFlag) Color.White else Color(0xFF111827); val txtSecondary=if(dark) Color(0xFF9AA0A6) else if(showFlag) Color.White.copy(alpha=.85f) else Color(0xFF6B7280); val txtBody=if(dark) Color(0xFFD1D5DB) else if(showFlag) Color.White.copy(alpha=.9f) else Color(0xFF374151)
-    Card(shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(containerColor=cardBg),elevation=CardDefaults.cardElevation(0.dp),modifier=Modifier.fillMaxWidth().height(150.dp).border(1.dp,cardBorder,RoundedCornerShape(24.dp))){
+    val clipboardManager = LocalClipboardManager.current
+    Card(shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(containerColor=cardBg),elevation=CardDefaults.cardElevation(0.dp),modifier=Modifier.fillMaxWidth().height(150.dp).border(1.dp,cardBorder,RoundedCornerShape(24.dp)).combinedClickable(onClick={},onLongClick={showMenu=true})){
         Box(Modifier.fillMaxSize()){
             // frosted glass shimmer
             val glass=if(dark) listOf(Color(0xFF1E2430).copy(alpha=.15f),Color(0xFF1E2430).copy(alpha=.06f),Color(0xFF1E2430).copy(alpha=.12f)) else listOf(Color.White.copy(alpha=.18f),Color.White.copy(alpha=.08f),Color.White.copy(alpha=.15f)); Box(Modifier.fillMaxSize().background(Brush.verticalGradient(glass)).clip(RoundedCornerShape(24.dp)))
@@ -458,10 +462,31 @@ fun shareExportFile(ctx:Context,fileName:String,mime:String,content:String,title
                 Row(verticalAlignment=Alignment.CenterVertically){Text("EID ${r.eid.ifBlank{fakeEidForCard(r)}}",fontSize=10.sp,color=if(dark) Color(0xFFB0B8C4) else txtSecondary,maxLines=1,overflow=TextOverflow.Ellipsis,modifier=Modifier.weight(1f)); Text(signalIcon(r.signalStatus)+" "+r.signalStatus,fontSize=10.sp,color=Color(0xFF16A34A),maxLines=1)}
                 Box(Modifier.fillMaxWidth(.80f).height(4.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFFE5E7EB))){Box(Modifier.fillMaxWidth(progress).fillMaxHeight().background(Color(0xFF22C55E)))}
                 Spacer(Modifier.height(2.dp))
-                Row(horizontalArrangement=Arrangement.spacedBy(18.dp)){
-                    CardIconAction("keep",Color(0xFF8B5CF6)){keep=true}
-                    CardIconAction("traffic",Color(0xFF007AFF)){onTraffic(r)}
-                    CardIconAction("edit",Color(0xFFFF9500)){on编辑(r)}
+
+            }
+            if(showMenu){
+                val mEdit=L("编辑"); val mCopy=L("复制号码"); val mKeep=L("保号"); val mTraffic=L("刷流量"); val mDel=L("删除")
+                Popup(alignment=Alignment.Center,onDismissRequest={showMenu=false}){
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.35f)).clickable{showMenu=false},contentAlignment=Alignment.Center){
+                        Card(shape=RoundedCornerShape(14.dp),colors=CardDefaults.cardColors(containerColor=Color.White),elevation=CardDefaults.cardElevation(12.dp),modifier=Modifier.widthIn(min=220.dp,max=280.dp)){
+                            Column(Modifier.padding(vertical=4.dp)){
+                                data class MenuItem(val label:String, val isDel:Boolean=false, val action:()->Unit)
+                                val items=listOf(
+                                    MenuItem(mEdit){showMenu=false;on编辑(r)},
+                                    MenuItem(mCopy){showMenu=false;clipboardManager.setText(AnnotatedString(r.number))},
+                                    MenuItem(mKeep){showMenu=false;keep=true},
+                                    MenuItem(mTraffic){showMenu=false;onTraffic(r)},
+                                    MenuItem(mDel,isDel=true){showMenu=false;del=true},
+                                )
+                                items.forEachIndexed{idx,item->
+                                    Box(Modifier.fillMaxWidth().clickable{item.action()}.padding(horizontal=20.dp,vertical=13.dp)){
+                                        Text(item.label,fontSize=15.sp,fontWeight=FontWeight.Normal,color=if(item.isDel) Color(0xFFFF3B30) else Color(0xFF111827))
+                                    }
+                                    if(idx<items.size-1) Box(Modifier.padding(horizontal=20.dp).fillMaxWidth().height(0.5.dp).background(Color(0xFFE5E7EB)))
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
