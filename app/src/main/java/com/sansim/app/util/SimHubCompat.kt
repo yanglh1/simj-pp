@@ -83,17 +83,24 @@ object SimHubCompat {
         val balance = if (price.isNotBlank() && currency.isNotBlank()) "$price $currency"
                       else obj.optString("currentBalance", "")
 
+        // tags: SimHub uses JSON array, simJ uses comma-separated string
         val tags = if (obj.has("tags")) {
             val arr = obj.getJSONArray("tags")
-            (0 until arr.length()).joinToString(", ") { arr.getString(it) }
+            (0 until arr.length()).joinToString(",") { arr.getString(it) }
         } else ""
 
-        val txnNotes = obj.optString("transactionNotes", "")
+        val transactionNotes = obj.optString("transactionNotes", "")
+        val customPrompt = obj.optString("customPrompt", "")
+        val websiteURL = obj.optString("websiteURL", "")
+        val cyclePaymentMinorUnits = obj.optInt("cyclePaymentMinorUnits", 0)
+        val currencyCode = obj.optString("currencyCode", "")
+        val cardBackgroundAssetName = obj.optString("cardBackgroundAssetName", "")
+        val cardColorHex = obj.optString("cardColorHex", "")
+
+        // Build note from plan only (tags/transactionNotes/customPrompt now have dedicated fields)
         val noteParts = mutableListOf<String>()
         val plan = obj.optString("plan", "")
         if (plan.isNotBlank()) noteParts.add(plan)
-        if (tags.isNotBlank()) noteParts.add(tags)
-        if (txnNotes.isNotBlank()) noteParts.add(txnNotes)
         val note = noteParts.joinToString("\n")
 
         return PhoneNumberRecord(
@@ -112,6 +119,14 @@ object SimHubCompat {
             createdAt = createdAt.ifBlank { LocalDate.now().toString() },
             longTerm = obj.optBoolean("isLongTerm", false),
             cycleDays = obj.optInt("renewDays", 30),
+            tags = tags,
+            transactionNotes = transactionNotes,
+            customPrompt = customPrompt,
+            websiteURL = websiteURL,
+            cyclePaymentMinorUnits = cyclePaymentMinorUnits,
+            currencyCode = currencyCode,
+            cardBackgroundAssetName = cardBackgroundAssetName,
+            cardColorHex = cardColorHex,
         )
     }
 
@@ -156,19 +171,33 @@ object SimHubCompat {
             obj.put("currentBalance", r.balance)
         }
 
-        // 卡片背景资源名
-        if (iso.isNotBlank()) {
-            val name = isoToBackgroundName(iso)
-            if (name.isNotBlank()) obj.put("cardBackgroundAssetName", name)
+        // tags: simJ uses comma-separated string, SimHub uses JSON array
+        if (r.tags.isNotBlank()) {
+            val tagsArr = JSONArray()
+            r.tags.split(",").forEach { tag ->
+                val t = tag.trim()
+                if (t.isNotBlank()) tagsArr.put(t)
+            }
+            obj.put("tags", tagsArr)
         }
 
-        // note → tags
+        // Export new SimHub fields
+        if (r.transactionNotes.isNotBlank()) obj.put("transactionNotes", r.transactionNotes)
+        if (r.customPrompt.isNotBlank()) obj.put("customPrompt", r.customPrompt)
+        if (r.websiteURL.isNotBlank()) obj.put("websiteURL", r.websiteURL)
+        if (r.cyclePaymentMinorUnits > 0) obj.put("cyclePaymentMinorUnits", r.cyclePaymentMinorUnits)
+        if (r.currencyCode.isNotBlank()) obj.put("currencyCode", r.currencyCode)
+        if (r.cardColorHex.isNotBlank()) obj.put("cardColorHex", r.cardColorHex)
+
+        // cardBackgroundAssetName: use stored value or generate from ISO
+        val bgName = r.cardBackgroundAssetName.ifBlank {
+            if (iso.isNotBlank()) isoToBackgroundName(iso) else ""
+        }
+        if (bgName.isNotBlank()) obj.put("cardBackgroundAssetName", bgName)
+
+        // note → plan (if note contains content not covered by dedicated fields)
         if (r.note.isNotBlank()) {
-            val tags = JSONArray()
-            r.note.split("\n").forEach { line ->
-                tags.put(line.trim())
-            }
-            obj.put("tags", tags)
+            obj.put("plan", r.note)
         }
 
         obj.put("updatedAt", java.time.Instant.now().toString())
@@ -179,7 +208,6 @@ object SimHubCompat {
     private fun parseIsoDate(raw: String): String {
         if (raw.isBlank()) return ""
         return try {
-            // "2026-07-01T00:00:00Z" → "2026-07-01"
             raw.substring(0, 10)
         } catch (e: Exception) {
             raw
@@ -194,11 +222,9 @@ object SimHubCompat {
     }
 
     private fun dialToIso(dialCode: String): String {
-        // 反查：区号 → ISO 国家码
         for ((iso, dial) in countryDialMap) {
             if (dial == dialCode) return iso
         }
-        // 常见区号硬编码兜底
         return when (dialCode) {
             "+86" -> "CN"
             "+852" -> "HK"
@@ -345,7 +371,6 @@ object SimHubCompat {
     }
 
     private fun isoToBackgroundName(iso: String): String {
-        // ISO code → SimHub cardBackgroundAssetName
         val name = when (iso.uppercase()) {
             "CN" -> "China"
             "HK" -> "HongKong"
@@ -550,7 +575,6 @@ object SimHubCompat {
             "TG" -> "Togo"
             "BJ" -> "Benin"
             "MR" -> "Mauritania"
-            "LY" -> "Libya"
             "KM" -> "Comoros"
             "CV" -> "CapeVerde"
             "ST" -> "SaoTomeAndPrincipe"
